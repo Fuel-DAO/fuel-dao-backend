@@ -1,5 +1,4 @@
 use std::{cell::RefCell, collections::BTreeMap};
-use candid::Principal;
 pub mod models;
 use default::DEFAULT_CAR_ID;
 pub use models::*;
@@ -27,7 +26,7 @@ fn init() {
 
 
         if !state.cars.contains_key(&DEFAULT_CAR_ID )  {
-            state.cars.insert(DEFAULT_CAR_ID, Car { id: DEFAULT_CAR_ID, details: default_car});
+            state.cars.insert(DEFAULT_CAR_ID, Car { id: DEFAULT_CAR_ID, details: default_car, bookings: Vec::new()});
         }
         
     });

@@ -14,6 +14,31 @@ pub struct State {
 pub struct Car {
     pub id: u64,
     pub details: CarDetails,
+    pub bookings: Vec<RentalTransaction>
+}
+
+impl Car {
+    pub fn get_booking_status_at_give_time_period(&self, start_time: u128, end_time: u128) -> CarStatus {
+    //    if self.details.status == CarStatus::Unavailable || self.details.status == CarStatus::UnderMaintenance {
+    //        return   self.details.status.clone();
+    //    } 
+       for booking in &self.bookings {
+        if Self::times_overlap(
+            booking.start_timestamp, 
+            booking.end_timestamp, 
+            start_time, 
+            end_time
+        ) {
+          return   CarStatus::Unavailable;
+        }
+    }
+    self.details.status.clone() 
+
+
+    }
+    fn times_overlap(existing_start: u128, existing_end: u128, new_start: u128, new_end: u128) -> bool {
+        !(new_end <= existing_start || new_start >= existing_end)
+    }
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -63,7 +88,7 @@ pub enum CarType {
     Coupe,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub enum CarStatus {
     Available,
     ComingSoon,
@@ -83,11 +108,10 @@ pub struct RentalTransaction {
     pub car_principal_id: u64,
     pub customer_principal_id: Principal,
     pub customer_name: String,
-    pub start_timestamp: u64, // Unix timestamp
-    pub end_timestamp: u64,   // Unix timestamp
+    pub start_timestamp: u128, // Unix timestamp
+    pub end_timestamp: u128,   // Unix timestamp
     pub total_amount: f64,
     pub payment_status: PaymentStatus,
-    pub reservation_id: Option<Principal>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
