@@ -58,7 +58,8 @@ service : () -> {
   get_car_details : (nat64) -> (opt Car) query;
   get_default_car : () -> (opt Car) query;
   greet : (text) -> (text) query;
-  list_all_cars : (nat, nat) -> (vec Car) query;
+  list_all_cars : () -> (vec Car) query;
   reserve_car : (nat64, nat, nat) -> (Result_1);
+  search_car : (nat, nat) -> (vec Car) query;
   update_car : (nat64, CarDetails) -> ();
 }
