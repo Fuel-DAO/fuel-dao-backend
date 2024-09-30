@@ -10,6 +10,7 @@ mod api;
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State {
         cars: BTreeMap::new(),
+        monitoring: BTreeMap::new()
     });
 }
 
@@ -26,7 +27,7 @@ fn init() {
 
 
         if !state.cars.contains_key(&DEFAULT_CAR_ID )  {
-            state.cars.insert(DEFAULT_CAR_ID, Car { id: DEFAULT_CAR_ID, details: default_car, bookings: Vec::new()});
+            state.cars.insert(DEFAULT_CAR_ID, Car { id: DEFAULT_CAR_ID, details: default_car, bookings: Vec::new(),/*  monitoring: Vec::new() */});
         }
         
     });

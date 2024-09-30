@@ -1,24 +1,52 @@
 use std::collections::BTreeMap;
 use candid::{CandidType, Principal};
+use ic_cdk::api::time;
 use serde::{Deserialize, Serialize};
 
-// ---- Structs and Enums ----
+use crate::STATE;
+
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct State {
     pub cars: BTreeMap<u64, Car>,
-    // pub bookings: BtreeMap<u64, RentalTransaction  >
+    pub monitoring: BTreeMap<Principal, Vec<EventMoniter>>
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum EventMoniter {
+    SearchInitiate { current_timestamp: u128, user_principal: Principal}, 
+    SelectedCar{car_id: u64 ,current_timestamp: u128, user_principal: Principal }, 
+    CarCheckout{car_id: u64, current_timestamp: u128, user_principal: Principal},
+}
+
+impl EventMoniter {
+    /// TODO: Implement other events
+    pub fn search_all_cars() {
+        STATE.with(|state| {
+            let mut state = state.borrow_mut();
+            let user = ic_cdk::caller();
+            let event = Self::SearchInitiate { current_timestamp: time() as u128, user_principal: user };
+             if  let Some(monitering) = state.monitoring.get_mut(&user) {
+                    monitering.push(event);
+            } else {
+                state.monitoring.insert(user, vec![event]);
+            }
+        });
+    } 
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct Car {
     pub id: u64,
     pub details: CarDetails,
-    pub bookings: Vec<RentalTransaction>
+    pub bookings: Vec<RentalTransaction>, 
+    // pub photos: Vec<String>
+    // pub monitoring: Vec<EventMoniter>
 }
 
 impl Car {
     pub fn get_booking_status_at_give_time_period(&self, start_time: u128, end_time: u128) -> CarStatus {
+    ///  TODO:  VERIFY THIS FUNCTION
     //    if self.details.status == CarStatus::Unavailable || self.details.status == CarStatus::UnderMaintenance {
     //        return   self.details.status.clone();
     //    } 
@@ -46,6 +74,7 @@ pub struct CarDetails {
     pub make: String,
     pub model: String,
     pub year: u32,
+    // pub default_image_url: String,
     pub car_type: CarType,
     pub current_price_per_day: f64,
     pub price_per_day: f64,

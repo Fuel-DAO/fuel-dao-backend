@@ -8,7 +8,7 @@ fn add_car(car: CarDetails) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
          let id = state.cars.last_key_value().map_or(1, |f| f.0 + 1);
-        state.cars.insert(id, crate::Car { id: id, details: car, bookings: Vec::new() });
+        state.cars.insert(id, crate::Car { id: id, details: car, bookings: Vec::new(), /* monitoring: Vec::new()  */});
     });
 }
 
