@@ -4,20 +4,20 @@ use ic_cdk_macros::update;
 
 use crate::{CarStatus, PaymentStatus, RentalTransaction, STATE};
 #[update]
-fn reserve_car(car_id: Principal, customer_id: Principal, start_timestamp: u64, end_timestamp: u64) -> Result<RentalTransaction, String> {
+fn reserve_car(car_id: u64, customer_id: Principal, start_timestamp: u64, end_timestamp: u64) -> Result<RentalTransaction, String> {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         if let Some(car) = state.cars.get_mut(&car_id) {
-            match car.status {
+            match car.details.status {
                 CarStatus::Available => {
                     let reservation_id = Principal::anonymous(); // Generate a reservation ID
-                    car.status = CarStatus::Reserved {
+                    car.details.status = CarStatus::Reserved {
                         reservation_id,
                         reservation_timestamp: 0  as u64, // Current time as u64
                         customer_id,
                     };
                     let total_days = (end_timestamp - start_timestamp) / 86400; // Calculate total days
-                    let total_amount = car.price_per_day * total_days as f64;    // Calculate total rental amount
+                    let total_amount = car.details.price_per_day * total_days as f64;    // Calculate total rental amount
                     let transaction = RentalTransaction {
                         car_principal_id: car_id,
                         customer_principal_id: customer_id,

@@ -6,7 +6,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct State {
-    pub cars: BTreeMap<Principal, CarDetails>,
+    pub cars: BTreeMap<u64, Car>,
+    // pub bookings: BtreeMap<u64, RentalTransaction  >
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct Car {
+    pub id: u64,
+    pub details: CarDetails,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -15,16 +22,16 @@ pub struct CarDetails {
     pub model: String,
     pub year: u32,
     pub car_type: CarType,
+    pub current_price_per_day: f64,
     pub price_per_day: f64,
     pub status: CarStatus,
-    // pub last_serviced: Option<u64>,  // Unix timestamp
+    pub capacity: u8,
     pub mileage: Option<u32>,
-    pub is_electric: bool,
     pub fuel_type: FuelType,
     pub transmission_type: TransmissionType,
     pub color: Option<String>,
-    pub pickup_location: Location,
-    pub dropoff_location: Location,
+    pub pickup_location: Option<Location>,
+    pub dropoff_location: Option<Location>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -59,6 +66,7 @@ pub enum CarType {
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum CarStatus {
     Available,
+    ComingSoon,
     Unavailable,
     UnderMaintenance,
     Reserved {
@@ -72,7 +80,7 @@ pub enum CarStatus {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct RentalTransaction {
-    pub car_principal_id: Principal,
+    pub car_principal_id: u64,
     pub customer_principal_id: Principal,
     pub customer_name: String,
     pub start_timestamp: u64, // Unix timestamp
