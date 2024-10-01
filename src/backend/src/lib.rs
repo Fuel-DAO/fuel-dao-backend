@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::BTreeMap};
 pub mod models;
 use default::DEFAULT_CAR_ID;
+use ic_cdk::{post_upgrade, pre_upgrade, storage};
 pub use models::*;
 pub mod default;
 mod api;
@@ -31,6 +32,27 @@ fn init() {
         }
         
     });
+}
+
+#[pre_upgrade]
+fn pre_upgrade() {
+    STATE.with(|state| storage::stable_save((State {
+        cars: state.borrow().cars.clone(), 
+        monitoring: state.borrow().monitoring.clone()
+    },)).unwrap());
+}
+
+#[post_upgrade]
+fn post_upgrade() {
+    let state: Result<(State, ), String> = storage::stable_restore();
+    match state {
+        Ok(state) => {
+            STATE.with(|s| { *s.borrow_mut() =  state.0;  });
+
+        }, Err(e) => {
+            println!("Failed to do post upgrade {e}");
+        }
+    }
 }
 
 
