@@ -2,7 +2,7 @@ use ic_cdk_macros::query;
 
 use crate::{Car, EventMoniter, STATE};
 #[query]
-fn search_car(start_time: u128, end_time: u128) -> Vec<Car> {
+fn search_car(start_time: u64, end_time: u64) -> Vec<Car> {
     EventMoniter::search_all_cars();
     STATE.with(|state| {
         let state = state.borrow();
@@ -21,7 +21,7 @@ fn list_all_cars() -> Vec<Car> {
 
 
 // #[query]
-// fn list_all_cars(start_time: u128, end_time:u128) -> Vec<Car> {
+// fn list_all_cars(start_time: u64, end_time:u64) -> Vec<Car> {
 //     STATE.with(|state| {
 //         let state = state.borrow();
 //         state.iter().map( status == UnderMaintainace ? Status::Unavailable value.reservation_status(date time) ).collect()

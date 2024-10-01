@@ -14,9 +14,9 @@ pub struct State {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum EventMoniter {
-    SearchInitiate { current_timestamp: u128, user_principal: Principal}, 
-    SelectedCar{car_id: u64 ,current_timestamp: u128, user_principal: Principal }, 
-    CarCheckout{car_id: u64, current_timestamp: u128, user_principal: Principal},
+    SearchInitiate { current_timestamp: u64, user_principal: Principal}, 
+    SelectedCar{car_id: u64 ,current_timestamp: u64, user_principal: Principal }, 
+    CarCheckout{car_id: u64, current_timestamp: u64, user_principal: Principal},
 }
 
 impl EventMoniter {
@@ -25,7 +25,7 @@ impl EventMoniter {
         STATE.with(|state| {
             let mut state = state.borrow_mut();
             let user = ic_cdk::caller();
-            let event = Self::SearchInitiate { current_timestamp: time() as u128, user_principal: user };
+            let event = Self::SearchInitiate { current_timestamp: time() as u64, user_principal: user };
              if  let Some(monitering) = state.monitoring.get_mut(&user) {
                     monitering.push(event);
             } else {
@@ -45,7 +45,7 @@ pub struct Car {
 }
 
 impl Car {
-    pub fn get_booking_status_at_give_time_period(&self, start_time: u128, end_time: u128) -> CarStatus {
+    pub fn get_booking_status_at_give_time_period(&self, start_time: u64, end_time: u64) -> CarStatus {
     ///  TODO:  VERIFY THIS FUNCTION
     //    if self.details.status == CarStatus::Unavailable || self.details.status == CarStatus::UnderMaintenance {
     //        return   self.details.status.clone();
@@ -64,16 +64,25 @@ impl Car {
 
 
     }
-    fn times_overlap(existing_start: u128, existing_end: u128, new_start: u128, new_end: u128) -> bool {
+    fn times_overlap(existing_start: u64, existing_end: u64, new_start: u64, new_end: u64) -> bool {
         !(new_end <= existing_start || new_start >= existing_end)
     }
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct  CarAvailability {
+  pub   details: CarDetails, 
+  pub  available: Option<RentalTransaction>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct CarDetails {
+    pub id: u64,
     pub make: String,
     pub model: String,
     pub year: u32,
+    pub description: String, 
+    pub default_image_url: String, 
     // pub default_image_url: String,
     pub car_type: CarType,
     pub current_price_per_day: f64,
@@ -137,8 +146,8 @@ pub struct RentalTransaction {
     pub car_principal_id: u64,
     pub customer_principal_id: Principal,
     pub customer_name: String,
-    pub start_timestamp: u128, // Unix timestamp
-    pub end_timestamp: u128,   // Unix timestamp
+    pub start_timestamp: u64, // Unix timestamp
+    pub end_timestamp: u64,   // Unix timestamp
     pub total_amount: f64,
     pub payment_status: PaymentStatus,
 }

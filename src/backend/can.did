@@ -3,14 +3,21 @@ type Car = record {
   bookings : vec RentalTransaction;
   details : CarDetails;
 };
+type CarAvailability = record {
+  available : opt RentalTransaction;
+  details : CarDetails;
+};
 type CarDetails = record {
+  id : nat64;
   status : CarStatus;
   model : text;
   mileage : opt nat32;
   make : text;
   color : opt text;
   year : nat32;
+  description : text;
   current_price_per_day : float64;
+  default_image_url : text;
   car_type : CarType;
   pickup_location : opt Location;
   dropoff_location : opt Location;
@@ -41,9 +48,9 @@ type Location = record {
 };
 type PaymentStatus = variant { Paid; Unpaid };
 type RentalTransaction = record {
-  end_timestamp : nat;
+  end_timestamp : nat64;
   total_amount : float64;
-  start_timestamp : nat;
+  start_timestamp : nat64;
   customer_principal_id : principal;
   payment_status : PaymentStatus;
   car_principal_id : nat64;
@@ -55,11 +62,11 @@ type TransmissionType = variant { Manual; Automatic };
 service : () -> {
   add_car : (CarDetails) -> ();
   cancel_reservation : (nat64) -> (Result);
-  get_car_details : (nat64) -> (opt Car) query;
+  get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability) query;
   get_default_car : () -> (opt Car) query;
   greet : (text) -> (text) query;
   list_all_cars : () -> (vec Car) query;
-  reserve_car : (nat64, nat, nat) -> (Result_1);
-  search_car : (nat, nat) -> (vec Car) query;
+  reserve_car : (nat64, nat64, nat64) -> (Result_1);
+  search_car : (nat64, nat64) -> (vec Car) query;
   update_car : (nat64, CarDetails) -> ();
 }
