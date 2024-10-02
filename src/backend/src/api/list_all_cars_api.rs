@@ -1,18 +1,19 @@
 use ic_cdk_macros::query;
 
-use crate::{Car, EventMoniter, STATE};
+use crate::{Car, STATE};
+
+use super::monitoring::log_search;
 #[query]
 fn search_car(start_time: u64, end_time: u64) -> Vec<Car> {
-    EventMoniter::search_all_cars();
     STATE.with(|state| {
         let state = state.borrow();
         state.cars.values().cloned().map(|mut f|{ f.details.status = f.get_booking_status_at_give_time_period(start_time, end_time); f}).collect()
     })
 }
 
-#[query]
+#[ic_cdk_macros::update]
 fn list_all_cars() -> Vec<Car> {
-    EventMoniter::search_all_cars();
+    log_search();
     STATE.with(|state| {
         let state = state.borrow();
         state.cars.values().cloned().collect()

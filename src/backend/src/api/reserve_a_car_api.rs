@@ -2,11 +2,15 @@
 use ic_cdk_macros::update;
 
 use crate::{Car, CarStatus, PaymentStatus, RentalTransaction, STATE};
+
+use super::monitoring::log_car_checkout;
 #[update]
 fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64) -> Result<RentalTransaction, String> {
     if start_timestamp >= end_timestamp {
         return Err("Invalid time range".to_string());
     }
+
+    log_car_checkout(car_id);
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         if let Some(car) = state.cars.get_mut(&car_id) {

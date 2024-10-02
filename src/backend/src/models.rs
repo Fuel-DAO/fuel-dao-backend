@@ -1,39 +1,18 @@
 use std::collections::BTreeMap;
 use candid::{CandidType, Principal};
-use ic_cdk::api::time;
 use serde::{Deserialize, Serialize};
 
-use crate::STATE;
+use crate::api::monitoring::MonitoringState;
+
 
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct State {
     pub cars: BTreeMap<u64, Car>,
-    pub monitoring: BTreeMap<Principal, Vec<EventMoniter>>
+    pub monitoring: MonitoringState
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub enum EventMoniter {
-    SearchInitiate { current_timestamp: u64, user_principal: Principal}, 
-    SelectedCar{car_id: u64 ,current_timestamp: u64, user_principal: Principal }, 
-    CarCheckout{car_id: u64, current_timestamp: u64, user_principal: Principal},
-}
 
-impl EventMoniter {
-    /// TODO: Implement other events
-    pub fn search_all_cars() {
-        STATE.with(|state| {
-            let mut state = state.borrow_mut();
-            let user = ic_cdk::caller();
-            let event = Self::SearchInitiate { current_timestamp: time() as u64, user_principal: user };
-             if  let Some(monitering) = state.monitoring.get_mut(&user) {
-                    monitering.push(event);
-            } else {
-                state.monitoring.insert(user, vec![event]);
-            }
-        });
-    } 
-}
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct Car {
@@ -46,7 +25,6 @@ pub struct Car {
 
 impl Car {
     pub fn get_booking_status_at_give_time_period(&self, start_time: u64, end_time: u64) -> CarStatus {
-    ///  TODO:  VERIFY THIS FUNCTION
     //    if self.details.status == CarStatus::Unavailable || self.details.status == CarStatus::UnderMaintenance {
     //        return   self.details.status.clone();
     //    } 
