@@ -30,8 +30,6 @@ jobs:
           curl -sSL https://sdk.dfinity.org/install.sh | sh
           # Add the DFX binary path to the environment variable for future steps
           echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
-          # Source the bash profile to make the DFX command available in the current shell
-          source ~/.bashrc
 
       - name: Set Up Environment # Step to set up the DFX identity
         run: |
@@ -77,8 +75,6 @@ jobs:
           curl -sSL https://sdk.dfinity.org/install.sh | sh
           # Add the DFX binary path to the environment variable for future steps
           echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
-          # Source the bash profile to make the DFX command available in the current shell
-          source ~/.bashrc
 
       - name: Set Up Environment # Step to set up the DFX identity for deployment
         run: |
