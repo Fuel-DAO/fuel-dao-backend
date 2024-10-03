@@ -23,8 +23,11 @@ jobs: # Define the jobs to be run in this workflow
       - name: Install Nix
         run: |
           sh <(curl -L https://nixos.org/nix/install) --no-daemon
-          . /home/runner/.nix-profile/etc/profile.d/nix.sh  # Correct path for single-user installation
-
+          if [ -L /home/runner/.nix-profile ]; then
+           rm /home/runner/.nix-profile
+          fi
+           ln -s /nix/var/nix/profiles/per-user/runner/profile /home/runner/.nix-profile
+          . /home/runner/.nix-profile/etc/profile.d/nix.sh
       - name: Cache Nix Packages
         uses: rikhuijzer/cache-install@v1.1.4
         with:
