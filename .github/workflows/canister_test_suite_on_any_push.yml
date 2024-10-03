@@ -26,10 +26,11 @@ jobs:
 
       - name: Install DFX # Step to install the DFINITY SDK (DFX)
         run: |
+          set -x # Enable debugging
           # Download and run the DFX installation script
           curl -sSL https://sdk.dfinity.org/install.sh | sh
           # Add the DFX binary path to the environment variable for future steps
-          echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
+          echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
 
       - name: Set Up Environment # Step to set up the DFX identity
         run: |
@@ -71,10 +72,11 @@ jobs:
 
       - name: Install DFX # Step to install the DFINITY SDK (DFX)
         run: |
+          set -x # Enable debugging
           # Download and run the DFX installation script
           curl -sSL https://sdk.dfinity.org/install.sh | sh
           # Add the DFX binary path to the environment variable for future steps
-          echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
+          echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
 
       - name: Set Up Environment # Step to set up the DFX identity for deployment
         run: |
