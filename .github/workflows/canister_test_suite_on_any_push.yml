@@ -21,15 +21,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install DFX (Direct Installation)
+      - name: Install DFX Manually
         run: |
-          # Download and install dfx without using dfxvm
-          DFX_VERSION=0.14.0 # Replace with the required version
-          curl -o dfx_installer.sh -SL https://sdk.dfinity.org/install.sh
-          chmod +x dfx_installer.sh
-          ./dfx_installer.sh --version $DFX_VERSION --install-location ~/.local/bin
-
-          # Manually add DFX to PATH
+          # Set DFX version
+          DFX_VERSION=0.14.0
+          # Download the tarball for the appropriate version
+          curl -L "https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz" -o dfx.tar.gz
+          # Extract it to the appropriate directory
+          mkdir -p ~/.local/bin
+          tar -xzf dfx.tar.gz -C ~/.local/bin --strip-components=1
+          # Ensure DFX is executable
+          chmod +x ~/.local/bin/dfx
+          # Add DFX to the system PATH
           echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
           export PATH=$PATH:~/.local/bin
 
@@ -66,14 +69,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install DFX (Direct Installation)
+      - name: Install DFX Manually
         run: |
-          DFX_VERSION=0.14.0 # Replace with the required version
-          curl -o dfx_installer.sh -SL https://sdk.dfinity.org/install.sh
-          chmod +x dfx_installer.sh
-          ./dfx_installer.sh --version $DFX_VERSION --install-location ~/.local/bin
-
-          # Manually add DFX to PATH
+          DFX_VERSION=0.14.0
+          curl -L "https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz" -o dfx.tar.gz
+          mkdir -p ~/.local/bin
+          tar -xzf dfx.tar.gz -C ~/.local/bin --strip-components=1
+          chmod +x ~/.local/bin/dfx
           echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
           export PATH=$PATH:~/.local/bin
 
