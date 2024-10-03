@@ -24,12 +24,11 @@ jobs:
       - name: Checkout Code # Step to check out the repository code
         uses: actions/checkout@v3 # Uses the checkout action to pull code from the repository
 
-      - name: Install DFX # Step to install the DFINITY SDK (DFX)
+      - name: Install DFX # Step to install the DFINITY SDK (DFX) without modifying profile files
         run: |
-          set -x # Enable debugging
-          # Download and run the DFX installation script
+          # Install DFX using the non-interactive mode
           curl -sSL https://sdk.dfinity.org/install.sh | sh
-          # Add the DFX binary path to the environment variable for future steps
+          # Manually add the DFX binary path to the PATH environment variable
           echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
 
       - name: Set Up Environment # Step to set up the DFX identity
@@ -70,12 +69,11 @@ jobs:
       - name: Checkout Code # Step to check out the repository code
         uses: actions/checkout@v3 # Uses the checkout action to pull code from the repository
 
-      - name: Install DFX # Step to install the DFINITY SDK (DFX)
+      - name: Install DFX # Step to install the DFINITY SDK (DFX) without modifying profile files
         run: |
-          set -x # Enable debugging
-          # Download and run the DFX installation script
+          # Install DFX using the non-interactive mode
           curl -sSL https://sdk.dfinity.org/install.sh | sh
-          # Add the DFX binary path to the environment variable for future steps
+          # Manually add the DFX binary path to the PATH environment variable
           echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
 
       - name: Set Up Environment # Step to set up the DFX identity for deployment
