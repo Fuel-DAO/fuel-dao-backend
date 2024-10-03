@@ -21,14 +21,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install DFX (Non-Interactive)
+      - name: Install DFX (Direct Installation)
         run: |
-          # Install DFX but do NOT modify profile files
-          curl -sSL https://sdk.dfinity.org/install.sh | sh
-          # Add DFX binary path manually to environment
-          echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
-          # Ensure the PATH is updated for the session
-          export PATH=$PATH:~/.local/share/dfx/bin
+          # Download and install dfx without using dfxvm
+          DFX_VERSION=0.14.0 # Replace with the required version
+          curl -o dfx_installer.sh -SL https://sdk.dfinity.org/install.sh
+          chmod +x dfx_installer.sh
+          ./dfx_installer.sh --version $DFX_VERSION --install-location ~/.local/bin
+
+          # Manually add DFX to PATH
+          echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
+          export PATH=$PATH:~/.local/bin
 
       - name: Set Up Environment
         run: |
@@ -63,14 +66,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install DFX (Non-Interactive)
+      - name: Install DFX (Direct Installation)
         run: |
-          # Install DFX but do NOT modify profile files
-          curl -sSL https://sdk.dfinity.org/install.sh | sh
-          # Add DFX binary path manually to environment
-          echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
-          # Ensure the PATH is updated for the session
-          export PATH=$PATH:~/.local/share/dfx/bin
+          DFX_VERSION=0.14.0 # Replace with the required version
+          curl -o dfx_installer.sh -SL https://sdk.dfinity.org/install.sh
+          chmod +x dfx_installer.sh
+          ./dfx_installer.sh --version $DFX_VERSION --install-location ~/.local/bin
+
+          # Manually add DFX to PATH
+          echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
+          export PATH=$PATH:~/.local/bin
 
       - name: Set Up Environment
         run: |
