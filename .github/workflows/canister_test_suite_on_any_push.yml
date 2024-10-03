@@ -1,94 +1,85 @@
-# Name of the workflow, used for identification
 name: Canisters Test Suite and Deployment
 
-# Define the events that trigger this workflow
 on:
   push:
     branches:
-      - main # Trigger the workflow on pushes to the main branch
+      - main
   pull_request:
     branches:
-      - main # Trigger the workflow for pull requests targeting the main branch
+      - main
 
-# Manage concurrent runs of this workflow
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }} # Unique group based on workflow name and branch
-  cancel-in-progress: true # Cancel any in-progress runs in this group when a new run is triggered
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
-    name: Run Canister Test Suite # Name of the job
-    runs-on: ubuntu-22.04 # Use Ubuntu 22.04 runner for the job
+    name: Run Canister Test Suite
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout Code # Step to check out the repository code
-        uses: actions/checkout@v3 # Uses the checkout action to pull code from the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Install DFX # Step to install the DFINITY SDK (DFX) without modifying profile files
+      - name: Install DFX (Non-Interactive)
         run: |
-          # Install DFX using the non-interactive mode
+          # Install DFX but do NOT modify profile files
           curl -sSL https://sdk.dfinity.org/install.sh | sh
-          # Manually add the DFX binary path to the PATH environment variable
+          # Add DFX binary path manually to environment
           echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
+          # Ensure the PATH is updated for the session
+          export PATH=$PATH:~/.local/share/dfx/bin
 
-      - name: Set Up Environment # Step to set up the DFX identity
+      - name: Set Up Environment
         run: |
-          # Write the private key for the DFX identity to a temporary file
           echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-          # Import the identity using the private key and disable encryption
           dfx identity import --disable-encryption actions actions_identity.pem
-          # Remove the temporary private key file for security
           rm actions_identity.pem
-          # Use the imported identity for subsequent DFX commands
           dfx identity use actions
 
-      - name: Start Local Replica # Step to start the local DFX replica for development
-        run: dfx start --background # Start the DFX local development server in the background
+      - name: Start Local Replica
+        run: dfx start --background
 
-      - name: Create Canister IDs # Step to create canister IDs
-        run: dfx canister create --no-wallet backend # Create a canister with the specified name
+      - name: Create Canister IDs
+        run: dfx canister create --no-wallet backend
 
-      - name: Build Backend Canister # Step to build the backend canister
+      - name: Build Backend Canister
         run: |
-          dfx build backend # Build the specified canister
-          # Compress the generated WebAssembly file to reduce size
+          dfx build backend
           gzip -f -1 ./target/wasm32-unknown-unknown/release/backend.wasm
 
-      - name: Run Canister Test Suite # Step to run tests for the canister
-        run: cargo test # Execute the tests defined in the Rust project
+      - name: Run Canister Test Suite
+        run: cargo test
 
-      - name: Stop Local Replica # Step to stop the local DFX replica
-        run: dfx stop # Stop the running DFX local development server
+      - name: Stop Local Replica
+        run: dfx stop
 
   deploy:
-    name: Deploy Canister # Name of the deployment job
-    runs-on: ubuntu-22.04 # Use Ubuntu 22.04 runner for the job
-    needs: test # This job depends on the successful completion of the 'test' job
+    name: Deploy Canister
+    runs-on: ubuntu-22.04
+    needs: test
 
     steps:
-      - name: Checkout Code # Step to check out the repository code
-        uses: actions/checkout@v3 # Uses the checkout action to pull code from the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Install DFX # Step to install the DFINITY SDK (DFX) without modifying profile files
+      - name: Install DFX (Non-Interactive)
         run: |
-          # Install DFX using the non-interactive mode
+          # Install DFX but do NOT modify profile files
           curl -sSL https://sdk.dfinity.org/install.sh | sh
-          # Manually add the DFX binary path to the PATH environment variable
+          # Add DFX binary path manually to environment
           echo "export PATH=\$PATH:~/.local/share/dfx/bin" >> $GITHUB_ENV
+          # Ensure the PATH is updated for the session
+          export PATH=$PATH:~/.local/share/dfx/bin
 
-      - name: Set Up Environment # Step to set up the DFX identity for deployment
+      - name: Set Up Environment
         run: |
-          # Write the private key for the DFX identity to a temporary file
           echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-          # Import the identity using the private key and disable encryption
           dfx identity import --disable-encryption actions actions_identity.pem
-          # Remove the temporary private key file for security
           rm actions_identity.pem
-          # Use the imported identity for subsequent DFX commands
           dfx identity use actions
 
-      - name: Deploy Canister to ICP # Step to deploy the canister to the Internet Computer
+      - name: Deploy Canister to ICP
         env:
-          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
-        run: dfx deploy backend --network ic # Deploy the backend canister to the specified network
-
+          ICP_NETWORK: ic
+        run: dfx deploy backend --network ic
