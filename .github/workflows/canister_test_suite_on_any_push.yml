@@ -20,7 +20,15 @@ jobs: # Define the jobs to be run in this workflow
     steps: # Define the steps to be executed in this job
       - name: Checkout Code # Step to check out the code from the repository
         uses: actions/checkout@v3 # Use the checkout action from GitHub Actions
+      - name: Install Nix
+        run: |
+          sh <(curl -L https://nixos.org/nix/install) --no-daemon
+          . /etc/profile.d/nix.sh  # Source Nix profile to set environment variables
 
+      - name: Cache Nix Packages
+        uses: rikhuijzer/cache-install@v1.1.4
+        with:
+          key: nix-${{ hashFiles('default.nix') }}
       - name: Cache Nix Packages # Step to cache Nix packages for faster builds
         uses: rikhuijzer/cache-install@v1.1.4 # Use a caching action for Nix
         with:
