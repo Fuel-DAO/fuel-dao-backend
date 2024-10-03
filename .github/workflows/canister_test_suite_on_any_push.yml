@@ -21,16 +21,26 @@ jobs:
       - name: Checkout Code # Check out the repository code
         uses: actions/checkout@v3
 
-      - name: Install Nix # Install Nix package manager
+      - name: Install Nix
         run: |
+          # Install Nix without daemon
           sh <(curl -L https://nixos.org/nix/install) --no-daemon
+
+          # Ensure the Nix profile is correctly linked to the runner's profile
           if [ -L /home/runner/.nix-profile ]; then
             rm /home/runner/.nix-profile
           fi
           ln -s /nix/var/nix/profiles/per-user/runner/profile /home/runner/.nix-profile
-          # Source the nix environment after installation
-          . /nix/var/nix/profiles/per-user/runner/profile/etc/profile.d/nix.sh
 
+          # Source Nix profile (try both user-specific and global paths)
+          if [ -f /nix/var/nix/profiles/per-user/runner/profile/etc/profile.d/nix.sh ]; then
+            . /nix/var/nix/profiles/per-user/runner/profile/etc/profile.d/nix.sh
+          elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix.sh ]; then
+            . /nix/var/nix/profiles/default/etc/profile.d/nix.sh
+          else
+            echo "Nix profile script not found!"
+            exit 1
+          fi
       - name: Check Nix Info # Check Nix installation info
         run: nix-shell -p nix-info --run "nix-info -m"
 
