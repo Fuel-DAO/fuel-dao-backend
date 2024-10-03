@@ -123,11 +123,22 @@ pub enum CarStatus {
 pub struct RentalTransaction {
     pub car_principal_id: u64,
     pub customer_principal_id: Principal,
-    pub customer_name: String,
+    pub customer: Option<CustomerDetials>,
     pub start_timestamp: u64, // Unix timestamp
     pub end_timestamp: u64,   // Unix timestamp
     pub total_amount: f64,
     pub payment_status: PaymentStatus,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct CustomerDetials {
+    pub name: String,
+    pub email: String,
+    pub country_code: String,
+    pub mobile_number: String,
+    pub age: u8,
+    pub pan: String, 
+    pub aadhar: String,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

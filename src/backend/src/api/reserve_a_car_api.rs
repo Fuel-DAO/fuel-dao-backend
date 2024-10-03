@@ -1,12 +1,13 @@
 
+use ic_cdk::api::time;
 use ic_cdk_macros::update;
 
-use crate::{Car, CarStatus, PaymentStatus, RentalTransaction, STATE};
+use crate::{Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, STATE};
 
 use super::monitoring::log_car_checkout;
 #[update]
-fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64) -> Result<RentalTransaction, String> {
-    if start_timestamp >= end_timestamp {
+fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,customer :CustomerDetials) -> Result<RentalTransaction, String> {
+    if start_timestamp >= end_timestamp || start_timestamp < (time() / 1_000_000_000 ){
         return Err("Invalid time range".to_string());
     }
 
@@ -15,7 +16,8 @@ fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64) -> Result<
         let mut state = state.borrow_mut();
         if let Some(car) = state.cars.get_mut(&car_id) {
             match  car_availibility( car.clone(), start_timestamp, end_timestamp) {
-                Ok(transaction) => {
+                Ok( mut transaction) => {
+                    transaction.customer = Some(customer);
                     car.bookings.push(transaction.clone());
                     return Ok(transaction);
                 },
@@ -37,8 +39,8 @@ pub fn car_availibility(car: Car, start_timestamp: u64, end_timestamp: u64) -> R
             let transaction = RentalTransaction {
                 car_principal_id: car.id,
                 customer_principal_id: customer_id,
-                customer_name: "Customer Name".to_string(),
                 start_timestamp,
+                customer: None,
                 end_timestamp,
                 total_amount,
                 payment_status: PaymentStatus::Unpaid,

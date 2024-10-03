@@ -40,6 +40,15 @@ type CarStatus = variant {
   Unavailable;
 };
 type CarType = variant { SUV; Sedan; Truck; Coupe };
+type CustomerDetials = record {
+  age : nat8;
+  pan : text;
+  mobile_number : text;
+  name : text;
+  email : text;
+  country_code : text;
+  aadhar : text;
+};
 type EventMoniter = variant {
   CarCheckout : record {
     user_principal : principal;
@@ -66,11 +75,11 @@ type PaymentStatus = variant { Paid; Unpaid };
 type RentalTransaction = record {
   end_timestamp : nat64;
   total_amount : float64;
+  customer : opt CustomerDetials;
   start_timestamp : nat64;
   customer_principal_id : principal;
   payment_status : PaymentStatus;
   car_principal_id : nat64;
-  customer_name : text;
 };
 type Result = variant { Ok : text; Err : text };
 type Result_1 = variant { Ok : RentalTransaction; Err : text };
@@ -83,7 +92,7 @@ service : () -> {
   get_monitoring_events : () -> (vec EventMoniter) query;
   greet : (text) -> (text) query;
   list_all_cars : () -> (vec Car);
-  reserve_car : (nat64, nat64, nat64) -> (Result_1);
+  reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_1);
   search_car : (nat64, nat64) -> (vec Car) query;
   update_car : (nat64, CarDetails) -> ();
 }
