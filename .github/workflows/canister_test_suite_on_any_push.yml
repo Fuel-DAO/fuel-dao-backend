@@ -28,7 +28,8 @@ jobs:
             rm /home/runner/.nix-profile
           fi
           ln -s /nix/var/nix/profiles/per-user/runner/profile /home/runner/.nix-profile
-          . /home/runner/.nix-profile/etc/profile.d/nix.sh
+          # Source the nix environment after installation
+          . /nix/var/nix/profiles/per-user/runner/profile/etc/profile.d/nix.sh
 
       - name: Check Nix Info # Check Nix installation info
         run: nix-shell -p nix-info --run "nix-info -m"
