@@ -87,4 +87,5 @@ jobs: # Define the jobs to be run in this workflow
         env: # Define environment variables for this step
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: | # Run a shell command
-          nix-shell --run "dfx deploy backend --network $ICP_NETWORK"  # Deploy the backend canister to the specified ICP network
+          nix-shell --run "dfx deploy backend --network ic"
+          # nix-shell --run "dfx deploy backend --network $ICP_NETWORK"  # Deploy the backend canister to the specified ICP network
