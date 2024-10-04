@@ -1,0 +1,49 @@
+name: Deploy Backend to Internet Computer
+
+on:
+  push:
+    branches:
+      - prakash/updated_car_details
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DFX_PRINCIPAL_ID: ${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRINCIPAL_ID }}
+      DFX_PRIVATE_KEY: ${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}
+      BACKEND_CANISTER_ID: hmh62-uiaaa-aaaai-actxq-cai
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install DFX SDK
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pkg-config build-essential libssl-dev
+        sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+        dfx --version
+
+    - name: Authenticate DFX Identity
+      run: |
+        echo "${DFX_PRIVATE_KEY}" > identity.pem
+        chmod 600 identity.pem
+        dfx identity new github-action --disable-encryption
+        dfx identity import github-action identity.pem
+        dfx identity use github-action
+
+    - name: Build Backend with DFX
+      run: |
+        dfx build backend
+
+    - name: Install Backend Canister
+      run: |
+        dfx canister install backend --mode reinstall --network ic
+
+    - name: Deploy Backend to Canister 2
+      run: |
+        dfx deploy backend --network ic
+
+    - name: Clean up
+      run: |
+        rm -f identity.pem
