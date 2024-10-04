@@ -21,8 +21,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Check Terminal
-        run: bash -c 'if [ -t 1 ]; then echo "Terminal is available."; else echo "No interactive terminal detected. Running in non-interactive mode."; fi'
       - name: Install Rust and DFX
         run: |
           sudo apt update
