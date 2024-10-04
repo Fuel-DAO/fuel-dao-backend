@@ -65,15 +65,13 @@ jobs:
           nix-shell --run "dfx build backend"
           gzip -f -1 ./target/wasm32-unknown-unknown/release/backend.wasm
 
-      - name: Deploy Canister
-        run: nix-shell --run "dfx deploy"
+      # - name: Deploy Canister
+      #   run: nix-shell --run "dfx deploy"
 
-      - name: Test Backend via Candid Interface
-        run: |
-          echo "Testing Backend..."
-          curl --request GET \
-            --url "http://127.0.0.1:4943/?canisterId=a3shf-5eaaa-aaaaa-qaafa-cai&id=asrmz-lmaaa-aaaaa-qaaeq-cai" \
-            --header "Content-Type: application/json"
+      - name: Run Canister Test Suite # Run canister tests
+        env:
+          POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic
+        run: nix-shell --run "cargo test"
 
   # deploy:
   #   name: Deploy Canister # Deployment job
