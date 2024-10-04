@@ -24,12 +24,15 @@ jobs: # Define the jobs to be run in this workflow
         run: |
           sh <(curl -L https://nixos.org/nix/install) --no-daemon
           echo "Nix installed successfully"      # - name: Cache Nix Packages
+      - name: Set Nix Environment
+        run: |
+          echo ". /home/runner/.nix-profile/etc/profile.d/nix.sh" >> $GITHUB_ENV
+          shell: bash
+
       - name: Check Nix Path
         run: |
-          echo ". /home/runner/.nix-profile/etc/profile.d/nix.sh" >> $BASH_ENV
           . /home/runner/.nix-profile/etc/profile.d/nix.sh
           echo $PATH
-
       #   uses: rikhuijzer/cache-install@v1.1.4
       #   with:
       #     key: nix-${{ hashFiles('default.nix') }}
