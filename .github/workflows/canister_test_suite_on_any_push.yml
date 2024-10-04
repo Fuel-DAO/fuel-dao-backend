@@ -79,13 +79,13 @@ jobs:
       - name: Checkout Code # Check out repository code
         uses: actions/checkout@v3
 
-      - name: Import DFX Identity # Import DFX identity using secret key
-        run: |
-          touch actions_identity.pem
-          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-          nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"
-          rm actions_identity.pem
-          nix-shell --run "dfx identity use actions"
+      # - name: Import DFX Identity # Import DFX identity using secret key
+      #   run: |
+      #     touch actions_identity.pem
+      #     echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
+      #     nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"
+      #     rm actions_identity.pem
+      #     nix-shell --run "dfx identity use actions"
 
       - name: Deploy Canister to ICP # Deploy canister to the Internet Computer
         env:
