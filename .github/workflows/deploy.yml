@@ -33,11 +33,15 @@ jobs:
       run: |
         /usr/local/bin/dfx --version
 
+    - name: Remove existing DFX identity if exists
+      run: |
+        /usr/local/bin/dfx identity remove github-action || true
+
     - name: Authenticate DFX Identity
       run: |
         echo "${DFX_PRIVATE_KEY}" > identity.pem
         chmod 600 identity.pem
-        /usr/local/bin/dfx identity new github-action --disable-encryption
+        /usr/local/bin/dfx identity new github-action --storage-mode=plaintext
         /usr/local/bin/dfx identity import github-action identity.pem
         /usr/local/bin/dfx identity use github-action
 
