@@ -1,92 +1,94 @@
-name: Canisters Test Suite and Deployment
+name: Canisters Test Suite and Deployment # Define the name of the workflow
 
 on:
   push:
     branches:
-      - main
+      - main # Trigger this workflow on pushes to the main branch
   pull_request:
     branches:
-      - main
+      - main # Also trigger this workflow for pull requests targeting the main branch
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+concurrency: # Manage concurrent runs of this workflow
+  group: ${{ github.workflow }}-${{ github.ref }} # Create a unique group based on the workflow name and branch
+  cancel-in-progress: true # Cancel any in-progress runs in this group when a new run is triggered
 
-jobs:
-  test:
-    name: Run Canister Test Suite
-    runs-on: ubuntu-22.04
+jobs: # Define the jobs to be run in this workflow
+  test: # Job to run tests for the canisters
+    name: Run Canister Test Suite # Name of the job
+    runs-on: ubuntu-22.04 # Specify the type of runner to use for this job (Ubuntu 22.04)
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install DFX Manually
+    steps: # Define the steps to be executed in this job
+      - name: Checkout Code # Step to check out the code from the repository
+        uses: actions/checkout@v3 # Use the checkout action from GitHub Actions
+      - name: Install Nix
         run: |
-          # Set DFX version
-          DFX_VERSION=0.14.0
-          # Download the tarball for the appropriate version
-          curl -L "https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz" -o dfx.tar.gz
-          # Extract it to the appropriate directory
-          mkdir -p ~/.local/bin
-          tar -xzf dfx.tar.gz -C ~/.local/bin --strip-components=1
-          # Ensure DFX is executable
-          chmod +x ~/.local/bin/dfx
-          # Add DFX to the system PATH
-          echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
-          export PATH=$PATH:~/.local/bin
+          sh <(curl -L https://nixos.org/nix/install) --no-daemon
+          . /home/runner/.nix-profile/etc/profile.d/nix.sh  # Correct path for single-user installation
+      - name: Cache Nix Packages
+        uses: rikhuijzer/cache-install@v1.1.4
+        with:
+          key: nix-${{ hashFiles('default.nix') }}
+      # - name: Cache Nix Packages # Step to cache Nix packages for faster builds
+      #   uses: rikhuijzer/cache-install@v1.1.4 # Use a caching action for Nix
+      #   with:
+      #     key: nix-${{ hashFiles('default.nix') }} # Cache key based on the hash of the default.nix file
+      #
+      - name: Cache Rust Dependencies and DFX Cache # Step to cache Rust and DFX build outputs
+        uses: actions/cache@v3 # Use the caching action from GitHub Actions
+        with:
+          path: | # Define the paths to be cached
+            ~/.cargo/bin/  # Path for Rust binaries
+            ~/.cargo/registry/index/  # Path for Rust registry index
+            ~/.cargo/registry/cache/  # Path for Rust registry cache
+            ~/.cargo/git/db/  # Path for Rust git dependencies
+            target/  # Build output directory
+            .dfx/  # DFX cache directory
+          key: rust-test-${{ hashFiles('**/Cargo.lock') }} # Cache key based on Cargo.lock file
 
-      - name: Set Up Environment
-        run: |
-          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-          dfx identity import --disable-encryption actions actions_identity.pem
-          rm actions_identity.pem
-          dfx identity use actions
+      - name: Import DFX Identity # Step to import DFX identity using a secret key
+        run: | # Run a shell command
+          touch actions_identity.pem  # Create a temporary file for the identity
+          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem  # Write the secret key to the file
+          nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"  # Import the DFX identity
+          rm actions_identity.pem  # Remove the temporary identity file
+          nix-shell --run "dfx identity use actions"  # Set the imported identity for use
+      - name: Start Local Replica # Step to start a local DFX replica
+        run: nix-shell --run "dfx start --background" # Start the replica in the background
 
-      - name: Start Local Replica
-        run: dfx start --background
+      - name: Create Canister IDs # Step to create canister IDs for the backend
+        run: | # Run a shell command
+          nix-shell --run "dfx canister create --no-wallet backend"  # Create the canister without a wallet
+      - name: Stop Local Replica # Step to stop the local DFX replica
+        run: nix-shell --run "dfx stop" # Stop the DFX replica
 
-      - name: Create Canister IDs
-        run: dfx canister create --no-wallet backend
+      - name: Build Backend Canister # Step to build the backend canister
+        run: | # Run a shell command
+          nix-shell --run "dfx build backend"  # Build the backend canister
+          gzip -f -1 ./target/wasm32-unknown-unknown/release/backend.wasm  # Compress the generated WASM file
+      - name: Run Canister Test Suite # Step to run the canister test suite
+        env: # Define environment variables for this step
+          POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic # Set the path to the Pocket IC binary
+        run: nix-shell --run "cargo test" # Run tests using Cargo
 
-      - name: Build Backend Canister
-        run: |
-          dfx build backend
-          gzip -f -1 ./target/wasm32-unknown-unknown/release/backend.wasm
+  deploy: # Job to deploy the canister
+    name: Deploy Canister # Name of the deployment job
+    runs-on: ubuntu-22.04 # Specify the type of runner to use for this job (Ubuntu 22.04)
+    needs: test # Ensure this job runs only after the test job has completed successfully
 
-      - name: Run Canister Test Suite
-        run: cargo test
+    steps: # Define the steps to be executed in this job
+      - name: Checkout Code # Step to check out the code from the repository
+        uses: actions/checkout@v3 # Use the checkout action from GitHub Actions
 
-      - name: Stop Local Replica
-        run: dfx stop
-
-  deploy:
-    name: Deploy Canister
-    runs-on: ubuntu-22.04
-    needs: test
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install DFX Manually
-        run: |
-          DFX_VERSION=0.14.0
-          curl -L "https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz" -o dfx.tar.gz
-          mkdir -p ~/.local/bin
-          tar -xzf dfx.tar.gz -C ~/.local/bin --strip-components=1
-          chmod +x ~/.local/bin/dfx
-          echo "export PATH=\$PATH:~/.local/bin" >> $GITHUB_ENV
-          export PATH=$PATH:~/.local/bin
-
-      - name: Set Up Environment
-        run: |
-          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-          dfx identity import --disable-encryption actions actions_identity.pem
-          rm actions_identity.pem
-          dfx identity use actions
-
-      - name: Deploy Canister to ICP
-        env:
-          ICP_NETWORK: ic
-        run: dfx deploy backend --network ic
+      - name: Import DFX Identity # Step to import DFX identity using a secret key
+        run: | # Run a shell command
+          touch actions_identity.pem  # Create a temporary file for the identity
+          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem  # Write the secret key to the file
+          nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"  # Import the DFX identity
+          rm actions_identity.pem  # Remove the temporary identity file
+          nix-shell --run "dfx identity use actions"  # Set the imported identity for use
+      - name: Deploy Canister to ICP # Step to deploy the canister to the Internet Computer
+        env: # Define environment variables for this step
+          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+        run: | # Run a shell command
+          nix-shell --run "dfx deploy backend --network ic"
+          # nix-shell --run "dfx deploy backend --network $ICP_NETWORK"  # Deploy the backend canister to the specified ICP network
