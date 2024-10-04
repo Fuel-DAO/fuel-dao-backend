@@ -26,33 +26,32 @@ jobs:
       run: |
         DFX_VERSION=0.24.0
         curl -LO https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz
-        mkdir -p /usr/local/bin/dfx
-        tar -xzf dfx-${DFX_VERSION}-x86_64-linux.tar.gz -C /usr/local/bin/dfx --strip-components=1
+        sudo tar -xzf dfx-${DFX_VERSION}-x86_64-linux.tar.gz -C /usr/local/bin
         rm dfx-${DFX_VERSION}-x86_64-linux.tar.gz
 
     - name: Check DFX installation
       run: |
-        /usr/local/bin/dfx/dfx --version
+        /usr/local/bin/dfx --version
 
     - name: Authenticate DFX Identity
       run: |
         echo "${DFX_PRIVATE_KEY}" > identity.pem
         chmod 600 identity.pem
-        /usr/local/bin/dfx/dfx identity new github-action --disable-encryption
-        /usr/local/bin/dfx/dfx identity import github-action identity.pem
-        /usr/local/bin/dfx/dfx identity use github-action
+        /usr/local/bin/dfx identity new github-action --disable-encryption
+        /usr/local/bin/dfx identity import github-action identity.pem
+        /usr/local/bin/dfx identity use github-action
 
     - name: Build Backend with DFX
       run: |
-        /usr/local/bin/dfx/dfx build backend
+        /usr/local/bin/dfx build backend
 
     - name: Install Backend Canister
       run: |
-        /usr/local/bin/dfx/dfx canister install backend --mode reinstall --network ic
+        /usr/local/bin/dfx canister install backend --mode reinstall --network ic
 
     - name: Deploy Backend to Canister 2
       run: |
-        /usr/local/bin/dfx/dfx deploy backend --network ic
+        /usr/local/bin/dfx deploy backend --network ic
 
     - name: Clean up
       run: |
