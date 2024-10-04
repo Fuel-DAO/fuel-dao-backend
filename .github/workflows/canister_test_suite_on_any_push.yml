@@ -46,6 +46,7 @@ jobs: # Define the jobs to be run in this workflow
           key: rust-test-${{ hashFiles('**/Cargo.lock') }} # Cache key based on Cargo.lock file
 
       - name: Import DFX Identity # Step to import DFX identity using a secret key
+        shell: bash
         run: | # Run a shell command
           touch actions_identity.pem  # Create a temporary file for the identity
           echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem  # Write the secret key to the file
