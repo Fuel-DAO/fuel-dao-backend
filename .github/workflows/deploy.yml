@@ -35,10 +35,16 @@ jobs:
 
     - name: Set up DFX default identity
       run: |
-        echo "${DFX_PRIVATE_KEY}" > identity.pem
-        chmod 600 identity.pem
-        /usr/local/bin/dfx identity import default identity.pem
-        /usr/local/bin/dfx identity use default
+        if /usr/local/bin/dfx identity list | grep -q "default"; then
+          echo "Using existing default identity."
+          /usr/local/bin/dfx identity use default
+        else
+          echo "Importing private key into default identity."
+          echo "${DFX_PRIVATE_KEY}" > identity.pem
+          chmod 600 identity.pem
+          /usr/local/bin/dfx identity import default identity.pem
+          /usr/local/bin/dfx identity use default
+        fi
 
     - name: Build Backend with DFX
       run: |
