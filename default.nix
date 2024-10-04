@@ -14,6 +14,9 @@ dfx-env.overrideAttrs (old: {
       pkgs.darwin.libiconv
     ] else []);
     shellHook = ''
+            # Add the wasm32 target
+      rustup target add wasm32-unknown-unknown
+
       cargo install --root $out --force candid-extractor
       ln -s $out/bin/candid-extractor $out/bin/candid-extractor
       export PATH="$out/bin:$PATH"
