@@ -65,6 +65,9 @@ jobs:
           nix-shell --run "dfx build backend"
           gzip -f -1 ./target/wasm32-unknown-unknown/release/backend.wasm
 
+      - name: Deploy Canister
+        run: nix-shell --run "dfx deploy"
+
       - name: Run Canister Test Suite # Run canister tests
         env:
           POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic
