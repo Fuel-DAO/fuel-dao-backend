@@ -21,15 +21,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install Rust and DFX
+      - name: Install Rust
         run: |
           sudo apt update
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source $HOME/.cargo/env
           cargo install ic-cdk-optimizer
-          DFX_VERSION=0.11.0 # Change this to the DFX version you need
-          sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
-          echo "DFX and Rust installed successfully"
+
+      - name: Install DFX
+        run: |
+          # Install DFX without interactive prompts
+          curl -fsSL https://sdk.dfinity.org/install.sh | sh -s -- -y
+          echo "DFX installed successfully"
+
+      - name: Set up PATH
+        run: echo "$HOME/.local/share/dfx/bin" >> $GITHUB_PATH
 
       - name: Cache Rust and DFX
         uses: actions/cache@v3
