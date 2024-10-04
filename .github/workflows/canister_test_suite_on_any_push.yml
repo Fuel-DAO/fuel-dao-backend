@@ -24,10 +24,10 @@ jobs: # Define the jobs to be run in this workflow
         run: |
           sh <(curl -L https://nixos.org/nix/install) --no-daemon
           . /home/runner/.nix-profile/etc/profile.d/nix.sh  # Correct path for single-user installation
-      - name: Cache Nix Packages
-        uses: rikhuijzer/cache-install@v1.1.4
-        with:
-          key: nix-${{ hashFiles('default.nix') }}
+      # - name: Cache Nix Packages
+      #   uses: rikhuijzer/cache-install@v1.1.4
+      #   with:
+      #     key: nix-${{ hashFiles('default.nix') }}
       # - name: Cache Nix Packages # Step to cache Nix packages for faster builds
       #   uses: rikhuijzer/cache-install@v1.1.4 # Use a caching action for Nix
       #   with:
