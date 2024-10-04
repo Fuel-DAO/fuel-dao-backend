@@ -70,25 +70,25 @@ jobs:
           POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic
         run: nix-shell --run "cargo test"
 
-  deploy:
-    name: Deploy Canister # Deployment job
-    runs-on: ubuntu-22.04
-    needs: test # Depends on test job completion
-
-    steps:
-      - name: Checkout Code # Check out repository code
-        uses: actions/checkout@v3
-
-      # - name: Import DFX Identity # Import DFX identity using secret key
-      #   run: |
-      #     touch actions_identity.pem
-      #     echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-      #     nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"
-      #     rm actions_identity.pem
-      #     nix-shell --run "dfx identity use actions"
-
-      - name: Deploy Canister to ICP # Deploy canister to the Internet Computer
-        env:
-          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
-        run: |
-          nix-shell --run "dfx deploy backend --network ic"
+  # deploy:
+  #   name: Deploy Canister # Deployment job
+  #   runs-on: ubuntu-22.04
+  #   needs: test # Depends on test job completion
+  #
+  #   steps:
+  #     - name: Checkout Code # Check out repository code
+  #       uses: actions/checkout@v3
+  #
+  #     # - name: Import DFX Identity # Import DFX identity using secret key
+  #     #   run: |
+  #     #     touch actions_identity.pem
+  #     #     echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
+  #     #     nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"
+  #     #     rm actions_identity.pem
+  #     #     nix-shell --run "dfx identity use actions"
+  #
+  #     - name: Deploy Canister to ICP # Deploy canister to the Internet Computer
+  #       env:
+  #         ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+  #       run: |
+  #         nix-shell --run "dfx deploy backend --network ic"
