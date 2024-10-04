@@ -3,7 +3,7 @@ name: Deploy Backend to Internet Computer
 on:
   push:
     branches:
-      - prakash/updated_car_details
+      - prakash.updated_car_details
 
 jobs:
   deploy:
@@ -24,9 +24,8 @@ jobs:
         # Download DFX directly from GitHub
         DFX_VERSION=0.24.0
         curl -LO https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz
-        tar xzf dfx-${DFX_VERSION}-linux-x86_64.tar.gz
-        sudo mv dfx /usr/local/bin/dfx
-        rm dfx-${DFX_VERSION}-linux-x86_64.tar.gz
+        tar xzf dfx-${DFX_VERSION}-x86_64-linux.tar.gz -C /usr/local/bin --strip-components=1
+        rm dfx-${DFX_VERSION}-x86_64-linux.tar.gz
         dfx --version
 
     - name: Authenticate DFX Identity
