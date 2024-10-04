@@ -20,7 +20,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
+      - name: Cache install Nix packages
+        uses: rikhuijzer/cache-install@v1.1.4
+        with:
+          key: nix-${{ hashFiles('default.nix') }}
       - name: Install Rust
         run: |
           sudo apt update
@@ -28,17 +31,7 @@ jobs:
           source $HOME/.cargo/env
           cargo install ic-cdk-optimizer
 
-      # - name: Install DFX
-      #   run: |
-      #     # Install DFX non-interactively
-      #     DFX_VERSION=0.11.0  # Change to your required version
-      #     curl -fsSL https://sdk.dfinity.org/install.sh | sh -s -- --version $DFX_VERSION --no-modify-path
-      #     echo "DFX installed successfully"
-      #
-      # - name: Set up PATH
-      #   run: echo "$HOME/.local/share/dfx/bin" >> $GITHUB_PATH
-
-      - name: Cache Rust and DFX
+      - name: Cache rust dependencies, build output and DFX build cache
         uses: actions/cache@v3
         with:
           path: |
