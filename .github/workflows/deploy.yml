@@ -3,7 +3,7 @@ name: Deploy Backend to Internet Computer
 on:
   push:
     branches:
-      - prakash/updated_car_details
+      - main
 
 jobs:
   deploy:
