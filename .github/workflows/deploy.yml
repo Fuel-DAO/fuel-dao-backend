@@ -48,16 +48,16 @@ jobs:
 
     - name: Create Backend Canister if not exists
       run: |
-        if /usr/local/bin/dfx canister id backend >/dev/null 2>&1; then
+        if /usr/local/bin/dfx canister id backend --network ic >/dev/null 2>&1; then
           echo "Backend canister already exists."
         else
           echo "Creating Backend canister."
-          /usr/local/bin/dfx canister create backend
+          /usr/local/bin/dfx canister create backend --network ic
         fi
 
     - name: Build Backend with DFX
       run: |
-        /usr/local/bin/dfx build backend
+        /usr/local/bin/dfx build backend --network ic
 
     - name: Install Backend Canister
       run: |
