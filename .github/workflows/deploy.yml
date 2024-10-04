@@ -33,17 +33,19 @@ jobs:
       run: |
         /usr/local/bin/dfx --version
 
-    - name: Remove existing DFX identity if exists
+    - name: Check if identity exists and use it or create a new one
       run: |
-        /usr/local/bin/dfx identity remove github-action || true
-
-    - name: Authenticate DFX Identity
-      run: |
-        echo "${DFX_PRIVATE_KEY}" > identity.pem
-        chmod 600 identity.pem
-        /usr/local/bin/dfx identity new github-action --storage-mode=plaintext
-        /usr/local/bin/dfx identity import github-action identity.pem
-        /usr/local/bin/dfx identity use github-action
+        if /usr/local/bin/dfx identity list | grep -q "github-action"; then
+          echo "Using existing identity 'github-action'."
+          /usr/local/bin/dfx identity use github-action
+        else
+          echo "Creating new identity 'github-action'."
+          echo "${DFX_PRIVATE_KEY}" > identity.pem
+          chmod 600 identity.pem
+          /usr/local/bin/dfx identity new github-action --storage-mode=plaintext
+          /usr/local/bin/dfx identity import github-action identity.pem
+          /usr/local/bin/dfx identity use github-action
+        fi
 
     - name: Build Backend with DFX
       run: |
