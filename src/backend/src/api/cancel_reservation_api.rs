@@ -1,5 +1,4 @@
 use ic_cdk_macros::update;
-
 use crate::{CarStatus, STATE};
 #[update]
 fn cancel_reservation(car_id: u64,) -> Result<String, String> {

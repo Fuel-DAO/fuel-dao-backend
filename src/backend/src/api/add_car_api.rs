@@ -1,9 +1,10 @@
 use ic_cdk_macros::update;
 
 use crate::{models::CarDetails, STATE};
+use crate::is_controller;
 
 
-#[update]
+#[update(guard = "is_controller")]
 fn add_car(car: CarDetails) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -12,7 +13,7 @@ fn add_car(car: CarDetails) {
     });
 }
 
-#[update]
+#[update(guard = "is_controller")]
 fn update_car(id: u64, car: CarDetails) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();

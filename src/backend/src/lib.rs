@@ -6,14 +6,18 @@ use ic_cdk::{post_upgrade, pre_upgrade, storage};
 pub use models::*;
 pub mod default;
 mod api;
+mod controller;
 pub mod constant;
 pub use api::monitoring::EventMoniter;
+pub use candid::Principal;
+pub use controller::*;
 
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State {
         cars: BTreeMap::new(),
-        monitoring: MonitoringState::default()
+        monitoring: MonitoringState::default(),
+        controllers: Vec::new(),
     });
 }
 
@@ -40,7 +44,8 @@ fn init() {
 fn pre_upgrade() {
     STATE.with(|state| storage::stable_save((State {
         cars: state.borrow().cars.clone(), 
-        monitoring: state.borrow().monitoring.clone()
+        monitoring: state.borrow().monitoring.clone(),
+        controllers: state.borrow().controllers.clone(),
     },)).unwrap());
 }
 

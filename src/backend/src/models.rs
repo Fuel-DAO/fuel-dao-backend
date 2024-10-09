@@ -9,7 +9,8 @@ use crate::api::monitoring::MonitoringState;
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct State {
     pub cars: BTreeMap<u64, Car>,
-    pub monitoring: MonitoringState
+    pub monitoring: MonitoringState,
+    pub controllers: Vec<Principal>,
 }
 
 

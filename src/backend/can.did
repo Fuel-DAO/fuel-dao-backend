@@ -82,18 +82,21 @@ type RentalTransaction = record {
   payment_status : PaymentStatus;
   car_principal_id : nat64;
 };
-type Result = variant { Ok : text; Err : text };
-type Result_1 = variant { Ok : RentalTransaction; Err : text };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : text; Err : text };
+type Result_2 = variant { Ok : RentalTransaction; Err : text };
 type TransmissionType = variant { Manual; Automatic };
 service : () -> {
   add_car : (CarDetails) -> ();
-  cancel_reservation : (nat64) -> (Result);
+  add_controller : (principal) -> (Result);
+  cancel_reservation : (nat64) -> (Result_1);
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);
   get_default_car : () -> (opt Car) query;
   get_monitoring_events : () -> (vec EventMoniter) query;
   greet : (text) -> (text) query;
   list_all_cars : () -> (vec Car);
-  reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_1);
-  search_car : (nat64, nat64) -> (vec Car) query;
+  remove_controller : (principal) -> (Result);
+  reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_2);
+  search_car : (nat64, nat64) -> (vec Car);
   update_car : (nat64, CarDetails) -> ();
 }
