@@ -18,6 +18,7 @@ impl Default for CarDetails {
             price_per_day: 50.0,
             current_price_per_day: 50.0,
             capacity: 4,
+            images: Vec::new(),
             status: CarStatus::Available,
             // last_serviced: Some(Utc::now().timestamp() as u64),
             mileage: Some(300),

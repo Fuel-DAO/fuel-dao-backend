@@ -25,6 +25,7 @@ type CarDetails = record {
   fuel_type : FuelType;
   price_per_day : float64;
   transmission_type : TransmissionType;
+  images : vec text;
 };
 type CarStatus = variant {
   OutOfService : record { reason : text };

@@ -61,6 +61,7 @@ pub struct CarDetails {
     pub year: u32,
     pub description: String, 
     pub default_image_url: String, 
+    pub images: Vec<String>,
     // pub default_image_url: String,
     pub car_type: CarType,
     pub current_price_per_day: f64,
