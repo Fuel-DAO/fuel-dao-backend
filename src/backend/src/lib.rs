@@ -11,6 +11,8 @@ pub mod constant;
 pub use api::monitoring::EventMoniter;
 pub use candid::Principal;
 pub use controller::*;
+#[cfg(test)]
+mod tests;
 
 
 thread_local! {
