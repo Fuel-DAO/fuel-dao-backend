@@ -1,12 +1,10 @@
 use candid::Principal;
-use ic_cdk::println;
 
 use crate::STATE;
 
 
 pub fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();
-    println!("{}", caller.to_text());
     if ic_cdk::api::is_controller(&caller){ return  Ok(());}
     STATE.with(|state| {
         if state

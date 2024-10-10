@@ -1,7 +1,7 @@
 
 use std::collections::VecDeque;
 
- use candid::{CandidType, Principal};
+use candid::{CandidType, Principal};
 use ic_cdk::api::time;
 use serde::{Deserialize, Serialize};
 use crate::controller::is_controller;
@@ -97,4 +97,14 @@ pub fn log_car_checkout(car_id: u64) {
 #[ic_cdk_macros::query (guard = "is_controller") ]
 fn get_monitoring_events() -> Vec<EventMoniter> {
     STATE.with(|state| state.borrow().monitoring.get_all_events())
+}
+
+#[ic_cdk_macros::query (guard = "is_controller") ]
+fn get_monitoring_events_for_user(principal: Principal) -> Vec<EventMoniter> {
+    STATE.with(|state| state.borrow().monitoring.get_events_by_user(principal))
+}
+
+#[ic_cdk_macros::query (guard = "is_controller") ]
+fn get_controllers() -> Vec<Principal> {
+    STATE.with(|state| state.borrow().controllers.clone())
 }

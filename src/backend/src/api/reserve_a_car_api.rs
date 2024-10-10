@@ -1,9 +1,11 @@
 
-use ic_cdk::api::time;
+use candid::Principal;
+use ic_cdk::caller;
+use ic_cdk::{api::time, query};
 use ic_cdk_macros::update;
 
 use crate::{Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, STATE};
-
+use crate::controller::is_controller;
 use super::monitoring::log_car_checkout;
 #[update]
 fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,customer :CustomerDetials) -> Result<RentalTransaction, String> {
@@ -50,4 +52,26 @@ pub fn car_availibility(car: Car, start_timestamp: u64, end_timestamp: u64) -> R
         _ => return Err("Car is not available".to_string()),
     }
 
+}
+
+#[query(guard="is_controller")]
+pub fn all_bookings() -> Vec<Vec<RentalTransaction>> {
+    STATE.with(|state| {
+        state.borrow().cars.iter().map(|f| f.1.bookings.clone()).collect()
+    })
+}
+
+#[query(guard="is_controller")]
+pub fn user_bookings(user: Principal) -> Vec<RentalTransaction> {
+    STATE.with(|state| {
+        state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.customer_principal_id == user).cloned().collect::<Vec<RentalTransaction>>()).flatten().collect()
+    })
+}
+
+#[query]
+pub fn current_user_bookings() -> Vec<RentalTransaction> {
+    let user = caller();
+    STATE.with(|state| {
+        state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.customer_principal_id == user).cloned().collect::<Vec<RentalTransaction>>()).flatten().collect()
+    })
 }
