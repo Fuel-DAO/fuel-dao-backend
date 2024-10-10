@@ -1,13 +1,10 @@
 use crate::{Car, CustomerDetials, EventMoniter, RentalTransaction};
-use candid::{ decode_one, encode_one, CandidType, Decode, Encode, Nat, Principal};
+use candid::{ decode_one, encode_one,  Decode, Encode, Principal};
 use pocket_ic::{PocketIc, WasmResult};
 use ic_cdk::api::management_canister::main::CanisterId;
-use candid::Deserialize;
 pub const CANISTER_WASM: &[u8] =
     include_bytes!("../../../../target/wasm32-unknown-unknown/release/backend.wasm");
 
-#[derive( CandidType,Deserialize, serde::Serialize, Debug, Clone)]
-pub enum Result2 { Ok(RentalTransaction), Err(String) }
 
 pub struct CanisterSetup {
     env: PocketIc,
@@ -94,6 +91,27 @@ impl CanisterSetup {
             .expect("failed to get value")
         {
             WasmResult::Reply(bytes) => Decode!(&bytes, Vec<EventMoniter>).unwrap(),
+            WasmResult::Reject(e) => {
+                panic!("Failed to get value: {:?}", e);
+            }
+        }
+    }
+
+    pub fn get_controllers(&self, caller: Principal) -> Vec<Principal>{
+        
+        let args = Encode!(&caller).expect("failed to encode args");
+
+        match self
+            .env
+            .query_call(
+                self.canister_id,
+                Principal::anonymous(),
+                "get_controllers",
+                args,
+            )
+            .expect("failed to get value")
+        {
+            WasmResult::Reply(bytes) => Decode!(&bytes, Vec<Principal>).unwrap(),
             WasmResult::Reject(e) => {
                 panic!("Failed to get value: {:?}", e);
             }
@@ -194,6 +212,18 @@ fn test_monitoring() {
     let events = canister.get_monitoring_events();
 
     assert_eq!(events.len(), 1);
+
+}
+
+
+#[test]
+fn test_controllers() {
+
+    let canister = CanisterSetup::default();
+
+    let controllers = canister.get_controllers(Principal::anonymous());
+
+    assert_eq!(controllers.len(), 0);
 
 }
 

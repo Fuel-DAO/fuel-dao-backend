@@ -104,7 +104,4 @@ fn get_monitoring_events_for_user(principal: Principal) -> Vec<EventMoniter> {
     STATE.with(|state| state.borrow().monitoring.get_events_by_user(principal))
 }
 
-#[ic_cdk_macros::query (guard = "is_controller") ]
-fn get_controllers() -> Vec<Principal> {
-    STATE.with(|state| state.borrow().controllers.clone())
-}
+

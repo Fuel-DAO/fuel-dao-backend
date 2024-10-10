@@ -20,6 +20,11 @@ pub fn is_controller() -> Result<(), String> {
 }
 
 
+#[ic_cdk_macros::query (guard = "is_controller") ]
+fn get_controllers() -> Vec<Principal> {
+    STATE.with(|state| state.borrow().controllers.clone())
+}
+
 
 #[ic_cdk_macros::update(guard = "is_controller")]
 pub fn add_controller(new_controller: Principal) -> Result<(), String> {
