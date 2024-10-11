@@ -143,6 +143,18 @@ pub struct CustomerDetials {
     pub aadhar: String,
 }
 
+impl CustomerDetials {
+    pub fn validate_details(&self) -> Result<(), String> {
+        if self.name.trim().len() < 3 {return  Err("Invalid Name, please provide a name with more than 4 characters.".into()) ;}
+        if self.email.trim().len() < 5 {return  Err("Invalid email, please provide a valid email adress".into()) ;}
+        if self.country_code.trim().len() != 2  {return  Err("Invalid country code, please provide a valid country code".into()) ;}
+        if self.mobile_number.trim().len() != 10  {return  Err("Invalid mobile number, please provide a 10 digits mobile number".into()) ;}
+        if (self.pan.trim().is_empty() || self.pan.trim().len() < 10) && (self.aadhar.trim().is_empty() || self.aadhar.trim().len() != 12)  {return  Err("Invalid documents, please provide a PAN or Aadhar".into()) ;}
+        if self.age < 18  {return  Err("Invalid age, age should be atleast 18".into()) ;}
+        Ok(())
+    }
+}
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct Customer {
     pub principal: Principal,

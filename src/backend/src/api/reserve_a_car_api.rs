@@ -13,6 +13,8 @@ fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,customer :C
         return Err("Invalid time range".to_string());
     }
 
+    customer.validate_details()?;
+
     log_car_checkout(car_id);
     STATE.with(|state| {
         let mut state = state.borrow_mut();
