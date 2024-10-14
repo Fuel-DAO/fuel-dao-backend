@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
-use crate::api::monitoring::MonitoringState;
+use crate::api::{monitoring::MonitoringState, send_email::MailState};
 
 
 
@@ -11,6 +11,7 @@ pub struct State {
     pub cars: BTreeMap<u64, Car>,
     pub monitoring: MonitoringState,
     pub controllers: Vec<Principal>,
+    pub mail_state: Option<MailState>
 }
 
 

@@ -11,6 +11,7 @@ pub mod constant;
 pub use api::monitoring::EventMoniter;
 pub use candid::Principal;
 pub use controller::*;
+use crate::api::send_email::MailState;
 #[cfg(test)]
 mod tests;
 
@@ -20,6 +21,7 @@ thread_local! {
         cars: BTreeMap::new(),
         monitoring: MonitoringState::default(),
         controllers: Vec::new(),
+        mail_state: None,
     });
 }
 
@@ -48,6 +50,7 @@ fn pre_upgrade() {
         cars: state.borrow().cars.clone(), 
         monitoring: state.borrow().monitoring.clone(),
         controllers: state.borrow().controllers.clone(),
+        mail_state: state.borrow().mail_state.clone()
     },)).unwrap());
 }
 

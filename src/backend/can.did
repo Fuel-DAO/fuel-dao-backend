@@ -72,6 +72,12 @@ type Location = record {
   longitude : float64;
   address : text;
 };
+type MailState = record {
+  access_token : text;
+  client_id : text;
+  client_secret : text;
+  refresh_token : text;
+};
 type PaymentStatus = variant { Paid; Unpaid };
 type RentalTransaction = record {
   end_timestamp : nat64;
@@ -99,9 +105,12 @@ service : () -> {
   get_monitoring_events_for_user : (principal) -> (vec EventMoniter) query;
   greet : (text) -> (text) query;
   list_all_cars : () -> (vec Car);
+  refresh_token : () -> (Result);
   remove_controller : (principal) -> (Result);
   reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_2);
   search_car : (nat64, nat64) -> (vec Car);
+  send_email_gmail : (text) -> (Result);
+  set_mail_state : (MailState) -> ();
   update_car : (nat64, CarDetails) -> ();
   user_bookings : (principal) -> (vec RentalTransaction) query;
 }

@@ -4,3 +4,4 @@ pub mod reserve_a_car_api;
 pub mod list_all_cars_api;
 pub mod cancel_reservation_api;
 pub mod monitoring;
+pub mod send_email;
