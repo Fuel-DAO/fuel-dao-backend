@@ -109,7 +109,6 @@ service : () -> {
   remove_controller : (principal) -> (Result);
   reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_2);
   search_car : (nat64, nat64) -> (vec Car);
-  send_email_gmail : (text) -> (Result);
   set_mail_state : (MailState) -> ();
   update_car : (nat64, CarDetails) -> ();
   user_bookings : (principal) -> (vec RentalTransaction) query;

@@ -7,8 +7,9 @@ use ic_cdk_macros::update;
 use crate::{Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, STATE};
 use crate::controller::is_controller;
 use super::monitoring::log_car_checkout;
+use super::send_email::{refresh_token, send_email_gmail};
 #[update]
-fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,customer :CustomerDetials) -> Result<RentalTransaction, String> {
+async fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,customer :CustomerDetials) -> Result<RentalTransaction, String> {
     if start_timestamp >= end_timestamp || start_timestamp < (time() / 1_000_000_000 ){
         return Err("Invalid time range".to_string());
     }
@@ -16,20 +17,38 @@ fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,customer :C
     customer.validate_details()?;
 
     log_car_checkout(car_id);
-    STATE.with(|state| {
+    let transaction =  STATE.with(|state| {
         let mut state = state.borrow_mut();
-        if let Some(car) = state.cars.get_mut(&car_id) {
-            match  car_availibility( car.clone(), start_timestamp, end_timestamp) {
+
+        match state.cars.get_mut(&car_id)  {
+            Some(car) => {match  car_availibility( car.clone(), start_timestamp, end_timestamp) {
                 Ok( mut transaction) => {
                     transaction.customer = Some(customer);
                     car.bookings.push(transaction.clone());
-                    return Ok(transaction);
+                     Ok(transaction)
                 },
-                _ => return Err("Car is not available".to_string()),
-            }
+                _ =>  Err("Car is not available".to_string()),
+            }},
+            None => Err("Car not found".to_string())
         }
-        Err("Car not found".to_string())
-    })
+    });
+
+    
+
+    if transaction.is_ok() {
+
+        let mail_status =  send_email_gmail(transaction.clone().unwrap()).await;
+
+        match mail_status {
+            Err(e) if e.contains("invalid_token") => {
+                let _ = refresh_token().await;
+                let _ = send_email_gmail(transaction.clone().unwrap()).await;
+            }
+            _ => {}
+        }
+    }
+
+     transaction
 }
 
 

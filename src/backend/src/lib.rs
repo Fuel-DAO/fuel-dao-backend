@@ -12,6 +12,7 @@ pub use api::monitoring::EventMoniter;
 pub use candid::Principal;
 pub use controller::*;
 use crate::api::send_email::MailState;
+pub mod utils;
 #[cfg(test)]
 mod tests;
 
