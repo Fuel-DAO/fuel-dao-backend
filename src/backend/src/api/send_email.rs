@@ -1,8 +1,8 @@
 use candid::Nat;
-use ic_cdk::{api::management_canister::http_request::{ CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse}, println};
-use ic_cdk_macros::{query, update};
+use ic_cdk::{api::management_canister::http_request::{ CanisterHttpRequestArgument, HttpHeader, HttpMethod}, println};
+use ic_cdk_macros::update;
 use serde_json::json;
-use base64::encode;
+use base64::{ engine::general_purpose, Engine};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use crate::controller::is_controller;
@@ -92,13 +92,12 @@ pub async  fn refresh_token() -> Result<(), String> {
             }
 }
 
-// #[query]
 pub async fn send_email_gmail(reservation: RentalTransaction) -> Result<(), String> {
     let mail_state = STATE.with(|state| state.borrow().mail_state.clone());
 
     let username = &reservation.customer.as_ref().unwrap().name;
     let to = &reservation.customer.as_ref().unwrap().email;
-    let booking_id = &reservation.customer_principal_id.to_text() ;
+    let booking_id = format!("{}-{}", reservation.car_id, &reservation.booking_id);
     let start_date = crate::utils::format_datetime(reservation.start_timestamp);
     let end_date = crate::utils::format_datetime(reservation.end_timestamp);
 
@@ -106,7 +105,6 @@ pub async fn send_email_gmail(reservation: RentalTransaction) -> Result<(), Stri
     match mail_state {
         Some( state) => {
             let access_token = state.access_token;
-             /* "ya29.a0AcM612ww8ZpQVG96quN_7B2OECuzGWuK_WrFAETGgLdDii1WfjyHsQ_WrJE3N_YN4-6zlq4WRhO15t-aGhWZ9S0V89P5Be2RdeT7oAPOQz1FnuqBVT2No2new4jaBd5wzI44mNS65iw19UFuM58cnYs29nLMuWjQ6KDcYzDcaCgYKAW8SARISFQHGX2Mi2wT_St-_Mw4u5TmqBfbFzg0175" */;
     let subject = "Booking Confirmed with FuelDao";
     let body = format!("Hey {username},\n\nThank you for choosing FuelDAO! This is a confirmation email of your booking ID {booking_id} with us from {start_date} IST to {end_date} IST.\n\nWatch this space for more details regarding your vehicle details and other information to make it a smooth experience.\n\nRegards\nTeam FuelDao");;
     let url = "https://www.googleapis.com/gmail/v1/users/me/messages/send";
@@ -116,7 +114,7 @@ pub async fn send_email_gmail(reservation: RentalTransaction) -> Result<(), Stri
         "To: {}\r\nSubject: {}\r\n\r\n{}",
         to, subject, body
     );
-    let encoded_message = encode(email_raw); // Base64 encode the email
+    let encoded_message = general_purpose::STANDARD.encode(email_raw) /* encode(email_raw) */; // Base64 encode the email
 
     let payload = json!({
         "raw": encoded_message

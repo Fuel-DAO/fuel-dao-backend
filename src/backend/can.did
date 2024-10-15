@@ -53,6 +53,7 @@ type CustomerDetials = record {
 type EventMoniter = variant {
   CarCheckout : record {
     user_principal : principal;
+    car_booking_id : nat64;
     car_id : nat64;
     current_timestamp : nat64;
   };
@@ -86,16 +87,28 @@ type RentalTransaction = record {
   start_timestamp : nat64;
   customer_principal_id : principal;
   payment_status : PaymentStatus;
-  car_principal_id : nat64;
+  car_id : nat64;
+  booking_id : nat64;
 };
 type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : RentalTransaction; Err : text };
+type TransactionHistory = record {
+  end_timestamp : text;
+  total_amount : float64;
+  customer : opt CustomerDetials;
+  start_timestamp : text;
+  customer_principal_id : principal;
+  payment_status : PaymentStatus;
+  car_id : nat64;
+  booking_id : nat64;
+};
 type TransmissionType = variant { Manual; Automatic };
 service : () -> {
   add_car : (CarDetails) -> ();
   add_controller : (principal) -> (Result);
   all_bookings : () -> (vec vec RentalTransaction) query;
+  booking_details : (nat64, nat64) -> (opt TransactionHistory) query;
   cancel_reservation : (nat64) -> (Result_1);
   current_user_bookings : () -> (vec RentalTransaction) query;
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);

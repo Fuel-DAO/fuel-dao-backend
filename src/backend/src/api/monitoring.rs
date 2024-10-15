@@ -11,7 +11,7 @@ use crate::STATE;
  pub enum EventMoniter {
      SearchInitiate { current_timestamp: u64, user_principal: Principal}, 
      SelectedCar{car_id: u64 ,current_timestamp: u64, user_principal: Principal }, 
-     CarCheckout{car_id: u64, current_timestamp: u64, user_principal: Principal},
+     CarCheckout{car_id: u64, current_timestamp: u64, user_principal: Principal, car_booking_id: u64},
  }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
@@ -40,11 +40,12 @@ impl MonitoringState {
     }
 
     /// Log the car checkout
-    pub fn log_car_checkout(&mut self, user: Principal, car_id: u64) {
+    pub fn log_car_checkout(&mut self, user: Principal, car_id: u64, car_booking_id: u64) {
         let event = EventMoniter::CarCheckout {
             current_timestamp: time() as u64,
             user_principal: user,
             car_id,
+            car_booking_id,
         };
         self.events.push_back(event);
     }
@@ -86,11 +87,11 @@ pub fn log_car_selection(car_id: u64) {
     });
 }
 
-pub fn log_car_checkout(car_id: u64) {
+pub fn log_car_checkout(car_id: u64, car_booking_id: u64) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         let user = ic_cdk::caller();
-        state.monitoring.log_car_checkout(user, car_id);
+        state.monitoring.log_car_checkout(user, car_id, car_booking_id);
     });
 }
 

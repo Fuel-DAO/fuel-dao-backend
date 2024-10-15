@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
-use crate::api::{monitoring::MonitoringState, send_email::MailState};
+use crate::{api::{monitoring::MonitoringState, send_email::MailState}, utils::format_datetime};
 
 
 
@@ -124,13 +124,43 @@ pub enum CarStatus {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct RentalTransaction {
-    pub car_principal_id: u64,
+    pub booking_id: u64,
+    pub car_id: u64,
     pub customer_principal_id: Principal,
     pub customer: Option<CustomerDetials>,
     pub start_timestamp: u64, // Unix timestamp
     pub end_timestamp: u64,   // Unix timestamp
     pub total_amount: f64,
     pub payment_status: PaymentStatus,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TransactionHistory {
+    pub booking_id: u64,
+    pub car_id: u64,
+    pub customer_principal_id: Principal,
+    pub customer: Option<CustomerDetials>,
+    pub start_timestamp: String, // Unix timestamp
+    pub end_timestamp: String,   // Unix timestamp
+    pub total_amount: f64,
+    pub payment_status: PaymentStatus,
+}
+
+impl RentalTransaction {
+
+    pub fn to_transaction_history(&self) -> TransactionHistory {
+        TransactionHistory {
+            booking_id: self.booking_id, 
+            car_id: self.car_id, 
+            customer_principal_id: self.customer_principal_id.clone(), 
+            customer: self.customer.clone(),
+            start_timestamp: format_datetime(self.start_timestamp),
+            end_timestamp: format_datetime(self.end_timestamp),
+            total_amount: self.total_amount,
+            payment_status: self.payment_status.clone()
+        }
+    }
+
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -176,5 +206,6 @@ pub enum PaymentStatus {
     Paid,
     Unpaid,
 }
+
 
 

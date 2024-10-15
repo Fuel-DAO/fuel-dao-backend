@@ -1,7 +1,7 @@
 use ic_cdk_macros::update;
 use crate::{CarStatus, STATE};
 #[update]
-fn cancel_reservation(car_id: u64,) -> Result<String, String> {
+fn cancel_reservation(car_id: u64, booking_id: u64) -> Result<String, String> {
     let customer_id = ic_cdk::caller();
     STATE.with(|state| {
         let mut state = state.borrow_mut();

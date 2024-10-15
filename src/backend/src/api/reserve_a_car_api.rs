@@ -4,7 +4,7 @@ use ic_cdk::caller;
 use ic_cdk::{api::time, query};
 use ic_cdk_macros::update;
 
-use crate::{Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, STATE};
+use crate::{ Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, TransactionHistory, STATE};
 use crate::controller::is_controller;
 use super::monitoring::log_car_checkout;
 use super::send_email::{refresh_token, send_email_gmail};
@@ -16,7 +16,6 @@ async fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,custo
 
     customer.validate_details()?;
 
-    log_car_checkout(car_id);
     let transaction =  STATE.with(|state| {
         let mut state = state.borrow_mut();
 
@@ -36,6 +35,8 @@ async fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,custo
     
 
     if transaction.is_ok() {
+
+        log_car_checkout(car_id, transaction.as_ref().unwrap().booking_id);
 
         let mail_status =  send_email_gmail(transaction.clone().unwrap()).await;
 
@@ -60,7 +61,8 @@ pub fn car_availibility(car: Car, start_timestamp: u64, end_timestamp: u64) -> R
             let total_days = (end_timestamp - start_timestamp) as f64 / 86400.0; 
             let total_amount = car.details.current_price_per_day * total_days as f64;  
             let transaction = RentalTransaction {
-                car_principal_id: car.id,
+                booking_id: time(),
+                car_id: car.id,
                 customer_principal_id: customer_id,
                 start_timestamp,
                 customer: None,
@@ -86,6 +88,13 @@ pub fn all_bookings() -> Vec<Vec<RentalTransaction>> {
 pub fn user_bookings(user: Principal) -> Vec<RentalTransaction> {
     STATE.with(|state| {
         state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.customer_principal_id == user).cloned().collect::<Vec<RentalTransaction>>()).flatten().collect()
+    })
+}
+
+#[query]
+pub fn booking_details(car_id: u64, booking_id: u64) -> Option<TransactionHistory> {
+    STATE.with(|state| {
+        state.borrow().cars.iter().find(|f| *f.0 == car_id).map(|f| f.1.bookings.iter().find(|f| f.booking_id == booking_id).cloned()).flatten().map(|f| f.to_transaction_history())
     })
 }
 
