@@ -110,6 +110,7 @@ pub async fn send_email_gmail(reservation: RentalTransaction) -> Result<(), Stri
 
     let username = &reservation.customer.as_ref().unwrap().name;
     let to = &reservation.customer.as_ref().unwrap().email;
+    let cc = "bookings@fueldao.io";
     let booking_id = format!("{}-{}", reservation.car_id, &reservation.booking_id);
     let start_date = crate::utils::format_datetime(reservation.start_timestamp);
     let end_date = crate::utils::format_datetime(reservation.end_timestamp);
@@ -119,13 +120,13 @@ pub async fn send_email_gmail(reservation: RentalTransaction) -> Result<(), Stri
         Some( state) => {
             let access_token = state.access_token;
     let subject = "Booking Confirmed with FuelDao";
-    let body = format!("Hey {username},\n\nThank you for choosing FuelDAO! This is a confirmation email of your booking ID {booking_id} with us from {start_date} IST to {end_date} IST.\n\nWatch this space for more details regarding your vehicle details and other information to make it a smooth experience.\n\nRegards\nTeam FuelDao");;
+    let body = format!("Hey {username},\n\nThank you for choosing FuelDAO! This is a confirmation email of your booking ID {booking_id} with us from {start_date} IST to {end_date} IST.\n\nWatch this space for more details regarding your vehicle details and other information to make it a smooth experience.\n\nRegards\nTeam FuelDao");
     let url = "https://www.googleapis.com/gmail/v1/users/me/messages/send";
 
     // Create the email message
     let email_raw = format!(
-        "To: {}\r\nSubject: {}\r\n\r\n{}",
-        to, subject, body
+        "To: {}\r\nCc: {}\r\nSubject: {}\r\n\r\n{}",
+        to,cc, subject, body
     );
     let encoded_message = general_purpose::STANDARD.encode(email_raw) /* encode(email_raw) */; // Base64 encode the email
 
