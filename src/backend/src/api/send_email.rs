@@ -5,6 +5,7 @@ use serde_json::json;
 use base64::encode;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
+use crate::controller::is_controller;
 
 use crate::{RentalTransaction, STATE};
 
@@ -17,7 +18,7 @@ pub struct MailState {
     client_id: String,
 }
 
-#[update]
+#[update(guard="is_controller")]
 pub fn set_mail_state(mail: MailState) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
