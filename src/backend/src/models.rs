@@ -20,20 +20,25 @@ pub struct State {
 pub struct Car {
     pub id: u64,
     pub details: CarDetails,
-    pub bookings: Vec<RentalTransaction>, 
+    pub bookings: BTreeMap<u64, RentalTransaction>, 
     // pub photos: Vec<String>
     // pub monitoring: Vec<EventMoniter>
 }
 
 impl Car {
+
+    pub fn get_car_without_bookings(&self) -> Self {
+        Self {  bookings: BTreeMap::new(), ..self.clone()}
+    }
+
     pub fn get_booking_status_at_give_time_period(&self, start_time: u64, end_time: u64) -> CarStatus {
     //    if self.details.status == CarStatus::Unavailable || self.details.status == CarStatus::UnderMaintenance {
     //        return   self.details.status.clone();
     //    } 
        for booking in &self.bookings {
         if Self::times_overlap(
-            booking.start_timestamp, 
-            booking.end_timestamp, 
+            booking.1.start_timestamp, 
+            booking.1.end_timestamp, 
             start_time, 
             end_time
         ) {

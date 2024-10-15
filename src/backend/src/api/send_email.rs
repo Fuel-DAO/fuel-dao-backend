@@ -1,6 +1,7 @@
+
 use candid::Nat;
 use ic_cdk::{api::management_canister::http_request::{ CanisterHttpRequestArgument, HttpHeader, HttpMethod}, println};
-use ic_cdk_macros::update;
+use ic_cdk_macros::{update, query};
 use serde_json::json;
 use base64::{ engine::general_purpose, Engine};
 use candid::CandidType;
@@ -23,6 +24,14 @@ pub fn set_mail_state(mail: MailState) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         state.mail_state = Some(mail);
+    })
+}
+
+#[query(guard="is_controller")]
+pub fn is_mail_state_set() -> bool {
+    STATE.with(|state| {
+        let  state = state.borrow();
+        state.mail_state.is_some()
     })
 }
 
@@ -63,8 +72,12 @@ impl MailState {
                 self.access_token = access_token.access_token;
                 Ok(self.clone())
                 } else {
+
+                    let res = format!("Error: {:?}", response);
+
+                    println!("{res}");
                     
-                    Err(format!("Error: {:?}", response))
+                    Err(res)
                 }
             },
             Err((code, message)) => Err(format!("HTTP error {:?}: {}", code, message)),

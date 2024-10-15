@@ -1,6 +1,6 @@
 type Car = record {
   id : nat64;
-  bookings : vec RentalTransaction;
+  bookings : vec record { nat64; RentalTransaction };
   details : CarDetails;
 };
 type CarAvailability = record {
@@ -107,9 +107,9 @@ type TransmissionType = variant { Manual; Automatic };
 service : () -> {
   add_car : (CarDetails) -> ();
   add_controller : (principal) -> (Result);
-  all_bookings : () -> (vec vec RentalTransaction) query;
+  all_bookings : () -> (vec vec record { nat64; RentalTransaction }) query;
   booking_details : (nat64, nat64) -> (opt TransactionHistory) query;
-  cancel_reservation : (nat64) -> (Result_1);
+  cancel_reservation : (nat64, nat64) -> (Result_1);
   current_user_bookings : () -> (vec RentalTransaction) query;
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);
   get_controllers : () -> (vec principal) query;
@@ -117,6 +117,7 @@ service : () -> {
   get_monitoring_events : () -> (vec EventMoniter) query;
   get_monitoring_events_for_user : (principal) -> (vec EventMoniter) query;
   greet : (text) -> (text) query;
+  is_mail_state_set : () -> (bool) query;
   list_all_cars : () -> (vec Car);
   refresh_token : () -> (Result);
   remove_controller : (principal) -> (Result);
@@ -124,5 +125,5 @@ service : () -> {
   search_car : (nat64, nat64) -> (vec Car);
   set_mail_state : (MailState) -> ();
   update_car : (nat64, CarDetails) -> ();
-  user_bookings : (principal) -> (vec RentalTransaction) query;
+  user_bookings : (principal) -> (vec TransactionHistory) query;
 }

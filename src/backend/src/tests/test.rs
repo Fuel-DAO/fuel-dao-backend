@@ -159,8 +159,8 @@ fn test_reserve_car() {
 
     let customer = CustomerDetials {
         name: "FuelDaoUser".into(), 
-        email: "fuel@fueldao.io".into(),
-        country_code: "+91".into(),
+        email: "prakash@fueldao.io".into(),
+        country_code: "91".into(),
         mobile_number: "9876543210".into(),
         age: 18, 
         pan: "USERPAN127NO".into(),

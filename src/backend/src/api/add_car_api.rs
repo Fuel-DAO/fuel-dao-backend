@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use ic_cdk_macros::update;
 
 use crate::{models::CarDetails, STATE};
@@ -9,7 +11,7 @@ fn add_car(car: CarDetails) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
          let id = state.cars.last_key_value().map_or(1, |f| f.0 + 1);
-        state.cars.insert(id, crate::Car { id, details: CarDetails { id, ..car }, bookings: Vec::new(), /* monitoring: Vec::new()  */});
+        state.cars.insert(id, crate::Car { id, details: CarDetails { id, ..car }, bookings: BTreeMap::new(), /* monitoring: Vec::new()  */});
     });
 }
 

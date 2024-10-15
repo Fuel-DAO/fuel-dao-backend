@@ -1,4 +1,6 @@
 
+use std::collections::BTreeMap;
+
 use candid::Principal;
 use ic_cdk::caller;
 use ic_cdk::{api::time, query};
@@ -23,7 +25,7 @@ async fn reserve_car(car_id: u64, start_timestamp: u64, end_timestamp: u64,custo
             Some(car) => {match  car_availibility( car.clone(), start_timestamp, end_timestamp) {
                 Ok( mut transaction) => {
                     transaction.customer = Some(customer);
-                    car.bookings.push(transaction.clone());
+                    car.bookings.insert(transaction.booking_id, transaction.clone());
                      Ok(transaction)
                 },
                 _ =>  Err("Car is not available".to_string()),
@@ -78,23 +80,23 @@ pub fn car_availibility(car: Car, start_timestamp: u64, end_timestamp: u64) -> R
 }
 
 #[query(guard="is_controller")]
-pub fn all_bookings() -> Vec<Vec<RentalTransaction>> {
+pub fn all_bookings() -> Vec<BTreeMap<u64, RentalTransaction>> {
     STATE.with(|state| {
         state.borrow().cars.iter().map(|f| f.1.bookings.clone()).collect()
     })
 }
 
 #[query(guard="is_controller")]
-pub fn user_bookings(user: Principal) -> Vec<RentalTransaction> {
+pub fn user_bookings(user: Principal) -> Vec<TransactionHistory> {
     STATE.with(|state| {
-        state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.customer_principal_id == user).cloned().collect::<Vec<RentalTransaction>>()).flatten().collect()
+        state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.1.customer_principal_id == user).map(|f| f.1.clone().to_transaction_history()).collect::<Vec<TransactionHistory>>()).flatten().collect()
     })
 }
 
 #[query]
 pub fn booking_details(car_id: u64, booking_id: u64) -> Option<TransactionHistory> {
     STATE.with(|state| {
-        state.borrow().cars.iter().find(|f| *f.0 == car_id).map(|f| f.1.bookings.iter().find(|f| f.booking_id == booking_id).cloned()).flatten().map(|f| f.to_transaction_history())
+        state.borrow().cars.iter().find(|f| *f.0 == car_id).map(|f| f.1.bookings.get(&booking_id)).flatten().map(|f| f.to_transaction_history())
     })
 }
 
@@ -102,6 +104,6 @@ pub fn booking_details(car_id: u64, booking_id: u64) -> Option<TransactionHistor
 pub fn current_user_bookings() -> Vec<RentalTransaction> {
     let user = caller();
     STATE.with(|state| {
-        state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.customer_principal_id == user).cloned().collect::<Vec<RentalTransaction>>()).flatten().collect()
+        state.borrow().cars.iter().map(|f| f.1.bookings.clone().iter().filter(|f| f.1.customer_principal_id == user).map(|f| f.1.clone()).collect::<Vec<RentalTransaction>>()).flatten().collect()
     })
 }

@@ -28,6 +28,10 @@ thread_local! {
 
 #[ic_cdk_macros::init]
 fn init() {
+    init_hook();
+}
+
+fn init_hook() {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         
@@ -39,7 +43,7 @@ fn init() {
 
 
         if !state.cars.contains_key(&DEFAULT_CAR_ID )  {
-            state.cars.insert(DEFAULT_CAR_ID, Car { id: DEFAULT_CAR_ID, details: default_car, bookings: Vec::new(),/*  monitoring: Vec::new() */});
+            state.cars.insert(DEFAULT_CAR_ID, Car { id: DEFAULT_CAR_ID, details: default_car, bookings: BTreeMap::new(),/*  monitoring: Vec::new() */});
         }
         
     });
@@ -61,7 +65,7 @@ fn post_upgrade() {
     match state {
         Ok(state) => {
             STATE.with(|s| { *s.borrow_mut() =  state.0;  });
-
+            init_hook();
         }, Err(e) => {
             println!("Failed to do post upgrade {e}");
         }
