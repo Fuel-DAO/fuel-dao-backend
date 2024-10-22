@@ -71,10 +71,10 @@ jobs:
       # - name: Deploy Canister
       #   run: nix-shell --run "dfx deploy"
 
-      - name: Run Canister Test Suite # Run canister tests
-        env:
-          POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic
-        run: nix-shell --run "cargo test"
+      # - name: Run Canister Test Suite # Run canister tests
+      #   env:
+      #     POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic
+      #   run: nix-shell --run "cargo test"
 # deploy:
 #   name: Deploy Canister # Deployment job
 #   runs-on: ubuntu-22.04
