@@ -6,7 +6,6 @@ use crate::STATE;
 pub fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();
     if ic_cdk::api::is_controller(&caller){ return  Ok(());}
-    if Principal::from_text("nrfjk-jrfvy-xswr3-unaf5-q4kpm-xadal-76yec-irhz4-s2smp-5cl3a-mae").unwrap() == caller{ return  Ok(());}
     STATE.with(|state| {
         if state
             .borrow()
