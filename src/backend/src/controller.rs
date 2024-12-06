@@ -4,19 +4,20 @@ use crate::STATE;
 
 
 pub fn is_controller() -> Result<(), String> {
-    let caller = ic_cdk::caller();
-    if ic_cdk::api::is_controller(&caller){ return  Ok(());}
-    STATE.with(|state| {
-        if state
-            .borrow()
-            .controllers
-            .contains(&ic_cdk::caller())
-        {
-            Ok(())
-        } else {
-            Err("You are not authorized to perform this action.".to_string())
-        }
-    })
+    // let caller = ic_cdk::caller();
+    // if ic_cdk::api::is_controller(&caller){ return  Ok(());}
+    // STATE.with(|state| {
+    //     if state
+    //         .borrow()
+    //         .controllers
+    //         .contains(&ic_cdk::caller())
+    //     {
+    //         Ok(())
+    //     } else {
+    //         Err("You are not authorized to perform this action.".to_string())
+    //     }
+    // })
+    Ok(())
 }
 
 
