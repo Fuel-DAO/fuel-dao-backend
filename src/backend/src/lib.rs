@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::BTreeMap};
 pub mod models;
 use api::monitoring::MonitoringState;
+use default::DEFAULT_CAR_ID;
 // use default::DEFAULT_CAR_ID;
 use ic_cdk::{post_upgrade, pre_upgrade, storage};
 pub use models::*;
@@ -32,24 +33,24 @@ fn init() {
 
 fn init_hook() {
     STATE.with(|state| {
-        // let mut state = state.borrow_mut();
+        let mut state = state.borrow_mut();
 
         // Parse the hardcoded Principal for the default car
         // let default_car_principal = Principal::from_text(DEFAULT_CAR_PRINCIPAL).expect("Invalid principal format");
 
         // Create the default car
-        // let default_car = CarDetails::default();
+        let default_car = CarDetails::default();
 
-        // if !state.cars.contains_key(&DEFAULT_CAR_ID) {
-        //     state.cars.insert(
-        //         DEFAULT_CAR_ID,
-        //         Car {
-        //             id: DEFAULT_CAR_ID,
-        //             details: default_car,
-        //             bookings: BTreeMap::new(), /*  monitoring: Vec::new() */
-        //         },
-        //     );
-        // }
+        if !state.cars.contains_key(&DEFAULT_CAR_ID) {
+            state.cars.insert(
+                DEFAULT_CAR_ID,
+                Car {
+                    id: DEFAULT_CAR_ID,
+                    details: default_car,
+                    bookings: BTreeMap::new(), /*  monitoring: Vec::new() */
+                },
+            );
+        }
     });
 }
 
@@ -74,7 +75,7 @@ fn post_upgrade() {
             STATE.with(|s| {
                 *s.borrow_mut() = state.0;
             });
-            // init_hook();
+            init_hook();
         }
         Err(e) => {
             println!("Failed to do post upgrade {e}");

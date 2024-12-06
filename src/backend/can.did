@@ -107,6 +107,7 @@ service : () -> {
   current_user_bookings : () -> (vec RentalTransaction) query;
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);
   get_controllers : () -> (vec principal) query;
+  get_default_car : () -> (opt Car) query;
   get_monitoring_events : () -> (vec EventMoniter) query;
   get_monitoring_events_for_user : (principal) -> (vec EventMoniter) query;
   greet : (text) -> (text) query;
