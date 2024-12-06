@@ -5,7 +5,7 @@ use ic_cdk::caller;
 use ic_cdk::{api::time, query};
 use ic_cdk_macros::update;
 
-use super::monitoring::log_car_checkout;
+// use super::monitoring::log_car_checkout;
 use crate::controller::is_controller;
 use crate::{
     Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, TransactionHistory, STATE,

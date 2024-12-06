@@ -7,12 +7,13 @@ use crate::is_controller;
 
 
 #[update(guard = "is_controller")]
-fn add_car(car: CarDetails) {
+fn add_car(car: CarDetails) -> u64 {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
          let id = state.cars.last_key_value().map_or(1, |f| f.0 + 1);
         state.cars.insert(id, crate::Car { id, details: CarDetails { id, ..car }, bookings: BTreeMap::new(), /* monitoring: Vec::new()  */});
-    });
+        id
+    })
 }
 
 #[update(guard = "is_controller")]

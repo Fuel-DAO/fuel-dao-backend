@@ -73,12 +73,6 @@ type Location = record {
   longitude : float64;
   address : text;
 };
-type MailState = record {
-  access_token : text;
-  client_id : text;
-  client_secret : text;
-  refresh_token : text;
-};
 type PaymentStatus = variant { Paid; Unpaid };
 type RentalTransaction = record {
   end_timestamp : nat64;
@@ -105,7 +99,7 @@ type TransactionHistory = record {
 };
 type TransmissionType = variant { Manual; Automatic };
 service : () -> {
-  add_car : (CarDetails) -> ();
+  add_car : (CarDetails) -> (nat64);
   add_controller : (principal) -> (Result);
   all_bookings : () -> (vec vec record { nat64; RentalTransaction }) query;
   booking_details : (nat64, nat64) -> (opt TransactionHistory) query;
@@ -113,17 +107,14 @@ service : () -> {
   current_user_bookings : () -> (vec RentalTransaction) query;
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);
   get_controllers : () -> (vec principal) query;
-  get_default_car : () -> (opt Car) query;
   get_monitoring_events : () -> (vec EventMoniter) query;
   get_monitoring_events_for_user : (principal) -> (vec EventMoniter) query;
   greet : (text) -> (text) query;
-  is_mail_state_set : () -> (bool) query;
   list_all_cars : () -> (vec Car);
-  refresh_token : () -> (Result);
+  remove_car : (nat64) -> (opt Car);
   remove_controller : (principal) -> (Result);
   reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_2);
   search_car : (nat64, nat64) -> (vec Car);
-  set_mail_state : (MailState) -> ();
   update_car : (nat64, CarDetails) -> ();
   user_bookings : (principal) -> (vec TransactionHistory) query;
 }
