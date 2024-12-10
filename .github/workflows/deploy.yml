@@ -59,13 +59,28 @@ jobs:
       - name: check balance
         run: nix-shell --run "dfx cycles balance --network ic"
 
-      - name: Deploy Canister to ICP # Deploy canister to the Internet Computer
+      - name: Deploy Backend Canister to ICP # Deploy canister to the Internet Computer
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
           nix-shell --run "dfx deploy backend --network ic --yes"
+         
+      - name: Deploy Provision Canister to ICP # Deploy canister to the Internet Computer
+        env:
+          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+        run: |
           nix-shell --run "dfx deploy provision --network ic --yes"
+
+      - name: Deploy Asset_proxy Canister to ICP # Deploy canister to the Internet Computer
+        env:
+          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+        run: |
           nix-shell --run "dfx deploy asset_proxy --network ic --yes"
+
+      - name: Deploy Asset Canister to ICP # Deploy canister to the Internet Computer
+        env:
+          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+        run: |
           nix-shell --run "dfx deploy asset --network ic --yes"
 
       - name: Call Upload Asset Wasm Script 
