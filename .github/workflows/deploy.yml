@@ -69,21 +69,21 @@ jobs:
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx canister create provision --network ic --yes"
+          nix-shell --run "dfx canister create provision --network ic"
           nix-shell --run "dfx deploy provision --network ic --yes"
 
       - name: Deploy Asset_proxy Canister to ICP # Deploy canister to the Internet Computer
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx canister create asset_proxy --network ic --yes"
+          nix-shell --run "dfx canister create asset_proxy --network ic"
           nix-shell --run "dfx deploy asset_proxy --network ic --yes"
 
       - name: Deploy Asset Canister to ICP # Deploy canister to the Internet Computer
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx canister create asset --network ic --yes"
+          nix-shell --run "dfx canister create asset --network ic"
           nix-shell --run "dfx deploy asset --network ic --yes"
 
       - name: Call Upload Asset Wasm Script 
