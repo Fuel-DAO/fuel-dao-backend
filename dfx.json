@@ -4,6 +4,26 @@
       "candid": "src/backend/can.did",
       "package": "backend",
       "type": "rust"
+    },
+    "asset_proxy": {
+      "candid": "src/asset_proxy/can.did",
+      "package": "asset_proxy",
+      "type": "rust"
+    },
+    "provision": {
+      "candid": "src/provision/can.did",
+      "package": "provision",
+      "type": "rust"
+    },
+    "token": {
+      "candid": "src/token/can.did",
+      "package": "token",
+      "type": "rust"
+    },
+    "asset": {
+      "type": "custom",
+      "candid": "wasm/asset/can.did",
+      "wasm": "wasm/asset/assetstorage.wasm.gz"
     }
   },
   "defaults": {

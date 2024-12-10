@@ -9,7 +9,7 @@ function generate_did() {
 }
 
 # The list of canisters of your project
-CANISTERS=backend
+CANISTERS=backend,provision,asset_proxy,token
 
 for canister in $(echo $CANISTERS | sed "s/,/ /g")
 do

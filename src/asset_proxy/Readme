@@ -1,0 +1,3 @@
+  dfx canister update-settings --add-controller  "2vxsx-fae" asset_proxy 
+  dfx canister update-settings --add-controller  "2vxsx-fae" asset 
+  dfx canister update-settings --add-controller  "cbopz-duaaa-aaaaa-qaaka-cai" asset 

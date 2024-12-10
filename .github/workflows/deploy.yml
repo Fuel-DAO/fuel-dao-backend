@@ -63,7 +63,20 @@ jobs:
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx deploy --network ic --yes"
+          nix-shell --run "dfx deploy backend --network ic --yes"
+          nix-shell --run "dfx deploy asset --network ic --yes"
+          nix-shell --run "dfx deploy asset_proxy --network ic --yes"
+          nix-shell --run "dfx deploy provision --network ic --yes"
+
+      - name: Call Upload Asset Wasm Script 
+        run: |
+          chmod +x ./scripts/upload_asset_wasm.sh
+          nix-shell --run "./scripts/upload_asset_wasm.sh"
+
+      - name: Call Upload Token Wasm Script 
+        run: |
+          chmod +x ./scripts/upload_token_wasm.sh
+          nix-shell --run "./scripts/upload_token_wasm.sh"
 
       - name: Stop Local Replica # Stop the local DFX replica
         run: nix-shell --run "dfx stop"

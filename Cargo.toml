@@ -1,5 +1,12 @@
 [workspace]
 members = [
     "src/backend",
+    "src/token",
+    "src/provision",
+    "src/asset_proxy",
 ]
 resolver = "2"
+
+
+[workspace.dependencies]
+base64 = "0.22.1"

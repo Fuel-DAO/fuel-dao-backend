@@ -1,0 +1,6 @@
+
+
+
+dfx deploy token --mode install --argument '(variant { Init = { metadata = record { weight = 1000.0; drive_type = "Electric"; purchase_price = 5000; token = principal "ryjl3-tyaaa-aaaaa-aaaba-cai"; documents = vec { record { "Document1"; "https://doc1.com" }; record { "Document2"; "https://doc2.com" } }; supply_cap = 1000; displays = "LED"; seating = "5-seater"; cargo = 500.0; logo = "https://logo_url.com"; name = "EcoCar"; overall_height = 1.8; description = "Eco-friendly car"; overall_width = 1.9; track_front = 1.5; collection_owner = principal "2vxsx-fae"; asset_canister = principal "avqkn-guaaa-aaaaa-qaaea-cai"; ground_clearance = 0.2; key_features = vec { "Fast Charging"; "Long Range" }; range_per_charge = 400.0; track_rear = 1.6; acceleration = "5.2s 0-100km/h"; charging_speed = "50kW"; wheels = 4.0; brochure_url = "https://brochure.com"; index = principal "be2us-64aaa-aaaaa-qaabq-cai"; price = 3.0; battery = "Lithium-ion"; overall_length = 4.5; total_supply = 1000; symbol = "ECO"; treasury = principal "kdix6-cq3ej-2p465-a4tg7-cny6h-k3qsp-givr4-oxqw5-3cjsj-5lkcy-cae"; images = vec { "https://image1.com"; "https://image2.com" } }}})'
+
+dfx deploy token  --argument '(variant { Upgrade })'

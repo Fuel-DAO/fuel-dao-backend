@@ -1,0 +1,19 @@
+type ApproveFilesArg = record { files : vec text; asset_canister : principal };
+type AssetStoreArg = record {
+  key : text;
+  content : blob;
+  sha256 : opt blob;
+  content_type : text;
+  content_encoding : text;
+};
+type Result = variant { Ok : bool; Err : text };
+service : () -> {
+  approve_files : (ApproveFilesArg) -> (Result);
+  get_provision_canister : () -> (opt principal) query;
+  get_temp_asset_canister : () -> (opt principal) query;
+  prune : (vec text) -> (Result);
+  reject_files : (vec text) -> (Result);
+  set_provision_canister : (principal) -> (Result);
+  set_temp_asset_canister : (principal) -> (Result);
+  store : (AssetStoreArg) -> (Result);
+}
