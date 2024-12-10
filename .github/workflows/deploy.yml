@@ -64,9 +64,9 @@ jobs:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
           nix-shell --run "dfx deploy backend --network ic --yes"
-          nix-shell --run "dfx deploy asset --network ic --yes"
-          nix-shell --run "dfx deploy asset_proxy --network ic --yes"
           nix-shell --run "dfx deploy provision --network ic --yes"
+          nix-shell --run "dfx deploy asset_proxy --network ic --yes"
+          nix-shell --run "dfx deploy asset --network ic --yes"
 
       - name: Call Upload Asset Wasm Script 
         run: |
