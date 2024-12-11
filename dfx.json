@@ -20,11 +20,6 @@
       "package": "provision",
       "type": "rust"
     },
-    "token": {
-      "candid": "src/token/can.did",
-      "package": "token",
-      "type": "rust"
-    },
     "asset": {
       "type": "custom",
       "candid": "wasm/asset/can.did",
