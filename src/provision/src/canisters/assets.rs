@@ -21,7 +21,7 @@ pub async fn deploy_asset(wasm: Vec<u8>) -> Result<Principal, String> {
                 controllers:Some(vec![ic_cdk::api::id()]), ..Default::default()
             }),
         },
-        /* 14_000_000_000, */ 7_692_307_692 + 6_153_894_868 + 3_076_923_077,
+        /* 14_000_000_000, */ 500_000_000_000,
     )
     .await
     {
