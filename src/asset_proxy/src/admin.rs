@@ -29,7 +29,7 @@ pub fn is_provision_controller() -> Result<(), String> {
 
 pub fn validate_asset_uploader() -> Result<(), String> {
     let caller = ic_cdk::caller();
-    if caller == Principal::anonymous() {
+    if caller != Principal::anonymous() {
         Ok(())
     } else {
         Err("You are not authorized to perform this action.".to_string())
