@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -83,10 +83,10 @@ jobs:
         run: |
           nix-shell --run "dfx deploy asset --network ic --yes"
 
-      - name: Call Add controller Script 
-        run: |
-          chmod +x ./scripts/add_controller.sh
-          nix-shell --run "./scripts/add_controller.sh"
+      # - name: Call Add controller Script 
+      #   run: |
+      #     chmod +x ./scripts/add_controller.sh
+      #     nix-shell --run "./scripts/add_controller.sh"
 
       # - name: Call Upload Asset Wasm Script 
       #   run: |
