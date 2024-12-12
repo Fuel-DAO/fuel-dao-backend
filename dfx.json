@@ -24,6 +24,11 @@
       "type": "custom",
       "candid": "wasm/asset/can.did",
       "wasm": "wasm/asset/assetstorage.wasm.gz"
+    },
+    "token": {
+      "candid": "src/token/can.did",
+      "package": "token",
+      "type": "rust"
     }
   },
   "defaults": {
