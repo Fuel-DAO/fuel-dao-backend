@@ -102,7 +102,7 @@ pub async fn deploy_token(wasm: Vec<u8>, request: CollectionMetadata) -> Result<
                 ..Default::default()
             }),
         },
-        /* 14_000_000_000, */ 500_000_000_000,
+        /* 14_000_000_000, */ 500_000_000_000 * 2,
     )
     .await
     {
