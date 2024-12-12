@@ -10,8 +10,8 @@ let
   pkgs = import nixpkgs { };
 
   # Fetch and import the DFX environment for Internet Computer development
-  dfx-env = import (builtins.fetchTarball "https://github.com/ninegua/ic-nix/releases/download/20240610/dfx-env.tar.gz") {
-    version = "20240610";
+  dfx-env = import (builtins.fetchTarball "https://github.com/ninegua/ic-nix/releases/download/20241117/dfx-env.tar.gz") {
+    version = "20241117";
     inherit pkgs;
   };
 in
