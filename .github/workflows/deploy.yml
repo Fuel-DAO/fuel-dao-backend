@@ -69,83 +69,36 @@ jobs:
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx deploy provision --network ic --with-cycles=2000000000000 --yes"
+          nix-shell --run "dfx deploy provision --network ic --yes"
 
       - name: Deploy Asset_proxy Canister to ICP # Deploy canister to the Internet Computer
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx deploy asset_proxy --network ic --with-cycles=1000000000000 --yes"
+          nix-shell --run "dfx deploy asset_proxy --network ic --yes"
 
       - name: Deploy Asset Canister to ICP # Deploy canister to the Internet Computer
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx deploy asset --network ic --with-cycles=1000000000000 --yes"
+          nix-shell --run "dfx deploy asset --network ic --yes"
 
-      - name: Call Upload Asset Wasm Script 
+      - name: Call Add controller Script 
         run: |
-          chmod +x ./scripts/upload_asset_wasm.sh
-          nix-shell --run "./scripts/upload_asset_wasm.sh"
+          chmod +x ./scripts/add_controller.sh
+          nix-shell --run "./scripts/add_controller.sh"
 
-      - name: Call Upload Token Wasm Script 
-        run: |
-          chmod +x ./scripts/upload_token_wasm.sh
-          nix-shell --run "./scripts/upload_token_wasm.sh"
+      # - name: Call Upload Asset Wasm Script 
+      #   run: |
+      #     chmod +x ./scripts/upload_asset_wasm.sh
+      #     nix-shell --run "./scripts/upload_asset_wasm.sh"
+
+      # - name: Call Upload Token Wasm Script 
+      #   run: |
+      #     chmod +x ./scripts/upload_token_wasm.sh
+      #     nix-shell --run "./scripts/upload_token_wasm.sh"
 
       - name: Stop Local Replica # Stop the local DFX replica
         run: nix-shell --run "dfx stop"
 
-      # - name: Deploy Canister
-      #   run: nix-shell --run "dfx deploy"
-
-      # - name: Run Canister Test Suite # Run canister tests
-      #   env:
-      #     POCKET_IC_BIN: ${{ github.workspace }}/pocket-ic
-      #   run: nix-shell --run "cargo test"
-# deploy:
-#   name: Deploy Canister # Deployment job
-#   runs-on: ubuntu-22.04
-#   needs: test # Depends on test job completion
-#
-#   steps:
-#     - name: Checkout Code # Check out repository code
-#       uses: actions/checkout@v3
-#
-#     - name: Import DFX Identity # Import DFX identity using secret key
-#       run: |
-#         touch actions_identity.pem
-#         echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-#         nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"
-#         rm actions_identity.pem
-#         nix-shell --run "dfx identity use actions"
-#
-#     - name: Deploy Canister to ICP # Deploy canister to the Internet Computer
-#       env:
-#         ICP_NETWORK: ic
-#       run: |
-#         nix-shell --run "dfx deploy backend --network ic --with-cycles 1000000000000"
-
-# deploy:
-#   name: Deploy Canister # Deployment job
-#   runs-on: ubuntu-22.04
-#   needs: test # Depends on test job completion
-#
-#   steps:
-#     - name: Checkout Code # Check out repository code
-#       uses: actions/checkout@v3
-#
-#     # - name: Import DFX Identity # Import DFX identity using secret key
-#     #   run: |
-#     #     touch actions_identity.pem
-#     #     echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
-#     #     nix-shell --run "dfx identity import --disable-encryption actions actions_identity.pem"
-#     #     rm actions_identity.pem
-#     #     nix-shell --run "dfx identity use actions"
-#
-#     - name: Deploy Canister to ICP # Deploy canister to the Internet Computer
-#       env:
-#         ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
-#       run: |
-#         nix-shell --run "dfx deploy backend --network ic"
-
+      
