@@ -98,6 +98,7 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
         .await.map_err(|e| format!("Error fetching file: {:?}", e))?;
 
         // let file_data: GetAssetResponse = get_res.map_err(|e| format!("Error fetching file: {:?}", e))?;
+        
 
         // Store the file in the target asset canister
         let _: () = call(
@@ -109,8 +110,7 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
                 content_encoding: file_data.content_encoding,
                 content: file_data.content,
                 sha256: file_data
-                    .sha256
-                    .map(|sha| BASE64_STANDARD.decode(sha).unwrap_or_default()),
+                    .sha256,
             },)
         )
         .await
