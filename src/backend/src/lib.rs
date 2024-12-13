@@ -85,7 +85,7 @@ fn post_upgrade() {
 
 #[ic_cdk_macros::query]
 fn greet(name: String) -> String {
-    format!("Hello, {}!", name)
+    format!("Hello, {}! from FuelEV", name)
 }
 
 ic_cdk_macros::export_candid!();
