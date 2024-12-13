@@ -7,6 +7,13 @@ struct PermissionArgs {
     permission: Permission,
 }
 
+
+#[derive(candid::CandidType, candid::Deserialize)]
+struct RevokePermissionArgs {
+    of_principal: Principal,
+    permission: Permission,
+}
+
 #[derive(candid::CandidType, candid::Deserialize)]
 enum Permission {
     ManagePermissions,
@@ -52,8 +59,8 @@ pub async fn revoke_asset_edit_perms(
     user: Principal,
 ) -> Result<bool, String> {
     // Construct the permission arguments
-    let args = &PermissionArgs {
-        to_principal: user,
+    let args = &RevokePermissionArgs {
+        of_principal: user,
         permission: Permission::Revoke,
     };
 
