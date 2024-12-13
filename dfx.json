@@ -3,12 +3,7 @@
     "backend": {
       "candid": "src/backend/can.did",
       "package": "backend",
-      "type": "rust",
-      "remote": {
-        "id": {
-          "ic": "ewirk-vqaaa-aaaaj-qa57q-cai"
-        }
-      }
+      "type": "rust"
     },
     "asset_proxy": {
       "candid": "src/asset_proxy/can.did",
