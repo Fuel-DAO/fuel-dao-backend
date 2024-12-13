@@ -85,7 +85,7 @@ pub async fn approve_files_from_proxy(canister: Principal, files: Vec<String>, a
     ic_cdk::println!("Approve files {result:?}");
     // Return success if no error occurred
     match result {
-        Ok(()) => Ok(true),
+        Ok(res) => Ok(res),
         Err(e) => Err(e),
     }
 }
