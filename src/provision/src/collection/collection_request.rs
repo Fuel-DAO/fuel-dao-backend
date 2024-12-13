@@ -270,7 +270,7 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
         .collect();
 
     // // Step 6: TODO:// Approve the files
-    // approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
+    approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
 
     // // Step 7: Revoke proxy permissions
     revoke_asset_edit_perms(
