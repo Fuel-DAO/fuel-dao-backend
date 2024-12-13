@@ -95,7 +95,7 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
                 ],
             },)
         )
-        .await.map_err(|e| format!("Error fetching file: {:?}", e))?;
+        .await.map_err(|e| format!("Error fetching file: {:?} with args: {arg:?}", e))?;
 
         // let file_data: GetAssetResponse = get_res.map_err(|e| format!("Error fetching file: {:?}", e))?;
         
