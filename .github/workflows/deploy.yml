@@ -56,6 +56,12 @@ jobs:
       - name: Use myidentity # Start local DFX replica
         run: nix-shell --run "dfx identity use actions"
 
+      - name: Top up Provision 
+        run: nix-shell --run "dfx cycles top-up provision 4000000000000 --network ic"
+
+      - name: Get Identity Principal 
+        run: nix-shell --run "dfx identity get-principal"
+
       - name: check balance
         run: nix-shell --run "dfx cycles balance --network ic"
 
