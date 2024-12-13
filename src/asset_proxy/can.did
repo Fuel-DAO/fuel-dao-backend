@@ -18,7 +18,7 @@ type Result = variant { Ok : bool; Err : text };
 type Result_1 = variant { Ok : GetAssetResponse; Err : text };
 service : () -> {
   approve_files : (ApproveFilesArg) -> (Result);
-  get_file : (GetAssetArg, principal) -> (Result_1) query;
+  get_file : (GetAssetArg, principal) -> (Result_1);
   get_provision_canister : () -> (opt principal) query;
   get_temp_asset_canister : () -> (opt principal) query;
   prune : (vec text) -> (Result);

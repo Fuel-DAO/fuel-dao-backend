@@ -132,7 +132,7 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
 }
 
 
-#[ic_cdk_macros::query]
+#[ic_cdk_macros::update]
 pub async fn get_file(args: GetAssetArg, from_canister: Principal ) -> Result<GetAssetResponse, String> {
     let (file_data,) :(GetAssetResponse, ) = call(
         from_canister,

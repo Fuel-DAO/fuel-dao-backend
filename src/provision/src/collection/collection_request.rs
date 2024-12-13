@@ -318,7 +318,7 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
         .ok_or(String::from("Asset Proxy canister not set"))?;
 
     // // Step 4: Grant proxy permissions ///TODO:// Use
-    // grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
+    grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
 
     let request = collection.request.clone();
     // // Step 5: Prepare the files for approval
