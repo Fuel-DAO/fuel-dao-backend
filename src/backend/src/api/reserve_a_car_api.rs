@@ -11,7 +11,7 @@ use crate::{
     Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, TransactionHistory, STATE,
 };
 
-use super::monitoring::log_car_checkout;
+// use super::monitoring::log_car_checkout;
 // use super::send_email::{refresh_token, send_email_gmail};
 #[update]
 async fn reserve_car(
@@ -35,7 +35,7 @@ async fn reserve_car(
                     transaction.customer = Some(customer);
                     car.bookings
                         .insert(transaction.booking_id, transaction.clone());
-                    log_car_checkout(car_id, transaction.booking_id);
+                    state.monitoring.log_car_checkout(caller(), car_id, transaction.booking_id);
                     Ok(transaction)
                 }
                 _ => Err("Car is not available".to_string()),
@@ -57,7 +57,12 @@ async fn reserve_car(
     //         _ => {}
     //     }
     // }
-
+    
+    // match &transaction {
+    //     Ok(tx) => {
+    //         log_car_checkout(car_id, tx.booking_id)
+    //     }, Err(_) => {}
+    // };
     transaction
 }
 
