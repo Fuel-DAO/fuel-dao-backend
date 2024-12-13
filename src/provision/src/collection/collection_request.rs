@@ -208,82 +208,7 @@ pub fn list_collections() -> Vec<ListCollection> {
     })
 }
 
-/*
 
-export async function approve_request(id: nat): Promise<Result<ApproveSuccessResponse, text>> {
-  const validationResult = validateAdmin(ic.caller());
-  if (validationResult.Err) return validationResult;
-
-  const requestConfig = RequestStore.config.get(id);
-  const requestMetadata = RequestStore.metadata.get(id);
-  if (!requestConfig || !requestMetadata) return Result.Err("No request exists with the given id.");
-  if (requestConfig.approval_status.Pending === undefined)
-    return Result.Err("Request already processed.");
-
-  const deployAssetResult = await deploy_asset();
-  if (isErr(deployAssetResult)) return deployAssetResult;
-
-  const grantProxyPermsResult = await grant_asset_edit_perms(
-    deployAssetResult.Ok,
-    AssetProxyCanisterStore.id,
-  );
-  if (isErr(grantProxyPermsResult)) return grantProxyPermsResult;
-
-  const approvedFiles = [
-    ...requestMetadata.documents.map((doc) => doc[1]),
-    ...requestMetadata.images,
-    ...(requestMetadata.logo !== '' ? [requestMetadata.logo] : []),
-  ];
-
-  const approveAssetsResult = await approve_files_from_proxy(
-    deployAssetResult.Ok,
-    approvedFiles,
-  );
-  if (isErr(approveAssetsResult)) return approveAssetsResult;
-
-  const revokeProxyPermsResult = await revoke_asset_edit_perms(
-    deployAssetResult.Ok,
-    AssetProxyCanisterStore.id,
-  );
-  if (isErr(revokeProxyPermsResult)) return revokeProxyPermsResult;
-
-  const deployTokenResult = await deploy_token({
-    ...requestMetadata,
-    collection_owner: requestConfig.collection_owner,
-    asset_canister: deployAssetResult.Ok,
-
-    ...(
-      requestMetadata.logo !== "" &&
-      { logo: `https://${deployAssetResult.Ok.toString()}.icp0.io${requestMetadata.logo}` }
-    )
-  });
-  if (isErr(deployTokenResult)) return deployTokenResult;
-
-  const grantAssetAdminAccessResult = await grant_asset_admin_perms(
-    deployAssetResult.Ok,
-    deployTokenResult.Ok,
-  );
-  if (isErr(grantAssetAdminAccessResult)) return grantAssetAdminAccessResult;
-
-  // TODO: move to minter canister
-  const grantAssetEditAccessResult = await grant_asset_edit_perms(
-    deployAssetResult.Ok,
-    requestConfig.collection_owner,
-  );
-  if (isErr(grantAssetEditAccessResult)) return grantAssetEditAccessResult;
-
-  RequestStore.approveRequest(id);
-  RequestStore.setTokenCanister(id, deployTokenResult.Ok);
-  RequestStore.setAssetCanister(id, deployAssetResult.Ok);
-
-  return Result.Ok({
-    id,
-    asset_canister: deployAssetResult.Ok,
-    token_canister: deployTokenResult.Ok
-  });
-}
-
-*/
 #[ic_cdk_macros::update(guard = "is_controller")]
 pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     let mut state = STATE.with(|f| f.borrow_mut().clone());
@@ -309,6 +234,15 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     };
 
     collection.config.asset_canister = Some(deploy_asset_result);
+
+    STATE.with_borrow_mut(|f| {
+       match  f.collection_requests.get_mut(&id) {
+        Some(collection) => {
+            collection.config.asset_canister = Some(deploy_asset_result);
+        },
+        None => {}
+       }
+    });
 
     // Step 3: Deploy the asset canister
     let asset_canister_id = deploy_asset_result;
@@ -363,14 +297,26 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     // let wasm = include_bytes!("../../../../wasm/token/token.wasm.gz").to_vec();
     let wasm= match state.token_wasm     {
         Some(wasm) =>wasm,
-        None => return Err("Asset wasm not set".into()),
+        None => return Err("Token wasm not set".into()),
     } ;
 
-    let deploy_token_result = deploy_token(wasm, token_metadata).await?;
+    let deploy_token_result = match collection.config.token_canister {
+        Some(p) => p,
+        None => deploy_token(wasm, token_metadata).await?,
+    };
 
     let token_canister_id = deploy_token_result;
 
     collection.config.token_canister = Some(token_canister_id);
+
+    STATE.with_borrow_mut(|f| {
+        match  f.collection_requests.get_mut(&id) {
+         Some(collection) => {
+             collection.config.token_canister = Some(token_canister_id);
+         },
+         None => {}
+        }
+     });
 
     collection.config.approval_status = ConfigStatus::Approved;
 
