@@ -57,8 +57,8 @@ pub async fn revoke_asset_edit_perms(
         permission: Permission::Revoke,
     };
 
-    // Call the `grant_permission` method on the asset canister
-    match call(canister, "grant_permission", (args, )).await {
+    // Call the `revoke_permission` method on the asset canister
+    match call(canister, "revoke_permission", (args, )).await {
         Ok(()) => Ok(true),
         Err((_, err_msg)) => Err(format!("Failed to revoke permission: {}", err_msg)),
     }
