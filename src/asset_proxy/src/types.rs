@@ -1,4 +1,4 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Nat, Principal};
 use serde::{Deserialize, Serialize};
 
 /// Equivalent to AssetStoreArg
@@ -30,11 +30,11 @@ pub struct GetAssetArg {
     pub accept_encodings: Vec<String>,
 }
 
-#[derive(CandidType, Debug, Clone, Serialize, Deserialize, )]
+#[derive(CandidType, Debug, Clone, Serialize, candid::Deserialize, )]
 pub struct GetAssetResponse {
     pub content: Vec<u8>,            // The content of the asset as a vector of bytes
     pub sha256: Option<Vec<u8>>,     // Optional SHA256 hash of the content
     pub content_type: String,        // MIME type of the content
     pub content_encoding: String,    // Encoding used for the content
-    pub total_length: u64,           // Total length of the content
+    pub total_length: Nat,           // Total length of the content
 }
