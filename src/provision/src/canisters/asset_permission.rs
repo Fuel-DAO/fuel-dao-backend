@@ -18,7 +18,7 @@ struct RevokePermissionArgs {
 enum Permission {
     ManagePermissions,
     Commit,
-    Revoke
+    Prepare,
 }
 
 pub async fn grant_asset_admin_perms(
@@ -61,7 +61,7 @@ pub async fn revoke_asset_edit_perms(
     // Construct the permission arguments
     let args = &RevokePermissionArgs {
         of_principal: user,
-        permission: Permission::Revoke,
+        permission: Permission::Commit,
     };
 
     // Call the `revoke_permission` method on the asset canister
