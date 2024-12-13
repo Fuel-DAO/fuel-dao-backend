@@ -6,9 +6,19 @@ type AssetStoreArg = record {
   content_type : text;
   content_encoding : text;
 };
+type GetAssetArg = record { key : text; accept_encodings : vec text };
+type GetAssetResponse = record {
+  content : blob;
+  sha256 : opt blob;
+  content_type : text;
+  content_encoding : text;
+  total_length : nat;
+};
 type Result = variant { Ok : bool; Err : text };
+type Result_1 = variant { Ok : GetAssetResponse; Err : text };
 service : () -> {
   approve_files : (ApproveFilesArg) -> (Result);
+  get_file : (GetAssetArg, principal) -> (Result_1) query;
   get_provision_canister : () -> (opt principal) query;
   get_temp_asset_canister : () -> (opt principal) query;
   prune : (vec text) -> (Result);

@@ -1,5 +1,6 @@
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use candid::Principal;
 use ic_cdk::api::call::call;
 use ic_cdk_macros::update;
 use crate::canisters::get_temp_asset_canister;
@@ -128,4 +129,17 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
     }
 
     Ok(true)
+}
+
+
+#[ic_cdk_macros::query]
+pub async fn get_file(args: GetAssetArg, from_canister: Principal ) -> Result<GetAssetResponse, String> {
+    let (file_data,) :(GetAssetResponse, ) = call(
+        from_canister,
+        "get",
+        (&args, )
+    )
+    .await.map_err(|e| format!("Error fetching file: {:?}", e))?;
+    Ok(file_data)
+
 }
