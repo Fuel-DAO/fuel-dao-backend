@@ -40,19 +40,19 @@ flowchart TD
     %% Car Tokenization Platform
     subgraph Car_Tokenization_Platform["Car Tokenization Platform"]
         CarTokenizationFrontend["Car tokenization frontend"]
-        ProvisionCanister["Provision Canister<br>Acts as an index<br>canister and to<br>provision new NFT<br>canisters"]
-        AssetProxyCanister["Asset Proxy Canister<br>Acts as an index<br>canister and to<br>provision new NFT<br>canisters"]
+        ProvisionCanister["Provision Canister<br>Acts as an index<br>canister and provisions<br>new NFT canisters"]
+        AssetProxyCanister["Asset Proxy Canister<br>Acts as an index<br>canister and provisions<br>asset storage canisters"]
         AssetCanister["Asset Canister<br>Acts as a temporary<br>asset storage"]
 
         CarTokenizationFrontend --> ProvisionCanister
         ProvisionCanister --> AssetProxyCanister
         AssetProxyCanister --> AssetCanister
 
-        subgraph Token_Storage[""]
-            TokenCanister1["Token canister<br>NFT minter canister<br>Acts as an NFT collection<br>Used to mint new NFTs<br>And manage sale"]
+        subgraph Token_Storage["Token Storage"]
+            TokenCanister1["Token canister<br>NFT minter canister<br>Acts as an NFT collection<br>Used to mint new NFTs<br>And manage sales"]
             AssetCanister1["Asset canister<br>Acts as an NFT storage<br>for each NFT minter canister"]
 
-            TokenCanister2["Token canister<br>NFT minter canister<br>Acts as an NFT collection<br>Used to mint new NFTs<br>And manage sale"]
+            TokenCanister2["Token canister<br>NFT minter canister<br>Acts as an NFT collection<br>Used to mint new NFTs<br>And manage sales"]
             AssetCanister2["Asset canister<br>Acts as an NFT storage<br>for each NFT minter canister"]
 
             TokenCanister1 --> AssetCanister1
