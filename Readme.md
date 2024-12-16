@@ -11,14 +11,14 @@ This project is a decentralized application (dApp) for car rental management and
 
 | **Name**   | **Package** | **Type** | **Description**                      |
 |------------|-------------|----------|--------------------------------------|
-| **backend** | `backend`  | Rust     | Manages cars and booking operations. |
+| **backend** | `backend`  | Rust     | Manages cars and bookings operations. |
 
 ### 2. Car Tokenization Platform Canisters
 
 | **Name**       | **Package**     | **Type**    | **Description**                                                        |
 |----------------|-----------------|-------------|------------------------------------------------------------------------|
 | **provision**  | `provision`     | Rust        | Acts as an index canister and provisions new NFT canisters.            |
-| **asset_proxy**| `asset_proxy`   | Rust        | Acts as an index canister and provisions asset storage canisters.      |
+| **asset_proxy**| `asset_proxy`   | Rust        | Acts as a proxy canister for temp storage of assets.                   |
 | **asset**      | Custom          | Wasm Module | Stores assets temporarily for token canisters.                         |
 | **token**      | `token`         | Rust        | NFT minter canister, manages NFT collections, minting, and sales.      |
 
@@ -41,7 +41,7 @@ flowchart TD
     subgraph Car_Tokenization_Platform["Car Tokenization Platform"]
         CarTokenizationFrontend["Car tokenization frontend"]
         ProvisionCanister["Provision Canister<br>Acts as an index<br>canister and provisions<br>new NFT canisters"]
-        AssetProxyCanister["Asset Proxy Canister<br>Acts as an index<br>canister and provisions<br>asset storage canisters"]
+        AssetProxyCanister["Asset Proxy Canister<br>Acts as an proxy<br>for temp<br>storage of assets"]
         AssetCanister["Asset Canister<br>Acts as a temporary<br>asset storage"]
 
         CarTokenizationFrontend --> ProvisionCanister
