@@ -1,5 +1,3 @@
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
 use candid::Principal;
 use ic_cdk::api::call::call;
 use ic_cdk_macros::update;
@@ -80,25 +78,51 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
     // Process files
     for file in &arg.files {
         // Fetch file from temp asset canister
-        let (file_data,) :(GetAssetResponse, ) = call(
-            temp_asset_canister,
-            "get",
-            (&GetAssetArg {
-                key: file.clone(),
-                accept_encodings: vec![
-                    "identity".to_string(),
-                    "gzip".to_string(),
-                    "br".to_string(),
-                    "deflate".to_string(),
-                    "compress".to_string(),
-                    "zstd".to_string(),
-                ],
-            },)
-        )
-        .await.map_err(|e| format!("Error fetching file: {:?} with args: {arg:?}", e))?;
-
-        // let file_data: GetAssetResponse = get_res.map_err(|e| format!("Error fetching file: {:?}", e))?;
+        let (file_data,) :(GetAssetResponse, ) = match check_file_exists(temp_asset_canister,GetAssetArg {
+            key: file.clone(),
+            accept_encodings: vec![
+                "identity".to_string(),
+                "gzip".to_string(),
+                "br".to_string(),
+                "deflate".to_string(),
+                "compress".to_string(),
+                "zstd".to_string(),
+            ],
+        } ).await  {
+            Ok(f) => f, 
+            Err(e) => {
+                let _ = check_file_exists(asset_canister,GetAssetArg {
+                    key: file.clone(),
+                    accept_encodings: vec![
+                        "identity".to_string(),
+                        "gzip".to_string(),
+                        "br".to_string(),
+                        "deflate".to_string(),
+                        "compress".to_string(),
+                        "zstd".to_string(),
+                    ],
+                } ).await.map_err(|_| e)?;
+                return Ok(true);
+            }
+        };
         
+        //  call(
+        //     temp_asset_canister,
+        //     "get",
+        //     (&GetAssetArg {
+        //         key: file.clone(),
+        //         accept_encodings: vec![
+        //             "identity".to_string(),
+        //             "gzip".to_string(),
+        //             "br".to_string(),
+        //             "deflate".to_string(),
+        //             "compress".to_string(),
+        //             "zstd".to_string(),
+        //         ],
+        //     },)
+        // )
+        // .await.map_err(|e| format!("Error fetching file: {:?} with args: {arg:?}", e))?;
+
 
         // Store the file in the target asset canister
         let _: () = call(
@@ -131,6 +155,15 @@ async fn approve_files(arg: ApproveFilesArg) -> Result<bool, String> {
     Ok(true)
 }
 
+async fn check_file_exists(canister_id: Principal, args: GetAssetArg ) -> Result<(GetAssetResponse, ), String > {
+    Ok(call(
+        canister_id,
+        "get",
+        (&args,)
+    )
+    .await.map_err(|e| format!("Error fetching file: {:?} with args: {args:?}", e))?)
+
+}
 
 #[ic_cdk_macros::update]
 pub async fn get_file(args: GetAssetArg, from_canister: Principal ) -> Result<GetAssetResponse, String> {
