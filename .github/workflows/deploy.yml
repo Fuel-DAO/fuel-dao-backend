@@ -100,10 +100,10 @@ jobs:
       #     chmod +x ./scripts/upload_asset_wasm.sh
       #     nix-shell --run "./scripts/upload_asset_wasm.sh"
 
-      - name: Call Upload Token Wasm Script 
-        run: |
-          chmod +x ./scripts/upload_token_wasm.sh
-          nix-shell --run "./scripts/upload_token_wasm.sh"
+      # - name: Call Upload Token Wasm Script 
+      #   run: |
+      #     chmod +x ./scripts/upload_token_wasm.sh
+      #     nix-shell --run "./scripts/upload_token_wasm.sh"
 
       - name: Stop Local Replica # Stop the local DFX replica
         run: nix-shell --run "dfx stop"
