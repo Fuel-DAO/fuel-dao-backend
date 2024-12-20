@@ -57,7 +57,7 @@ jobs:
         run: nix-shell --run "dfx identity use actions"
 
       - name: Top up Provision 
-        run: nix-shell --run "dfx cycles top-up provision 4000000000000 --network ic"
+        run: nix-shell --run "dfx cycles top-up provision 1500000000000 --network ic"
 
       # - name: Get Identity Principal 
       #   run: nix-shell --run "dfx identity get-principal"
