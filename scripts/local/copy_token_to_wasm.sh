@@ -11,7 +11,7 @@ function copy_did_and_wasm() {
   candid-extractor "target/wasm32-unknown-unknown/release/$canister.wasm" > "$canister_root/can.did"
 
   # Gzip the wasm file
-  gzip -c "target/wasm32-unknown-unknown/release/$canister.wasm" > "$canister_root/$canister.wasm.gz"
+  gzip -c ".dfx/local/canisters/$canister/$canister.wasm" > "$canister_root/$canister.wasm.gz"
 
   echo "Copied can.did and gzipped wasm for $canister to $canister_root"
 }
