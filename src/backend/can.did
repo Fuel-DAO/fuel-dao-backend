@@ -40,6 +40,12 @@ type CarStatus = variant {
   ScheduledForInspection : record { inspection_timestamp : nat64 };
   Unavailable;
 };
+type CarTravelStats = record {
+  total_distance_travelled : float64;
+  total_investment : float64;
+  rentals : vec RentalTransaction;
+  total_revenue : float64;
+};
 type CarType = variant { SUV; Sedan; Truck; Coupe };
 type CustomerDetials = record {
   age : nat8;
@@ -110,9 +116,11 @@ type TransmissionType = variant { Manual; Automatic };
 service : () -> {
   add_car : (CarDetails) -> (nat64);
   add_controller : (principal) -> (Result);
+  add_distance_travelled : (nat64, float64, opt text) -> ();
   all_bookings : () -> (vec vec record { nat64; RentalTransaction }) query;
   booking_details : (nat64, nat64) -> (opt TransactionHistory) query;
   cancel_reservation : (nat64, nat64) -> (Result_1);
+  car_stats : () -> (CarTravelStats) query;
   current_user_bookings : () -> (vec RentalTransaction) query;
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);
   get_controllers : () -> (vec principal) query;

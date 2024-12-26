@@ -10,7 +10,25 @@ pub struct State {
     pub monitoring: MonitoringState,
     pub controllers: Vec<Principal>,
     pub unpaid_bookings: BTreeMap<u64, RentalTransaction>,
-    // pub mail_state: Option<MailState>,
+    pub car_travel_details: BTreeMap<u64, DistanceTravelled>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct CarTravelStats {
+    pub total_revenue: f64,
+    pub total_distance_travelled: f64,
+    pub total_investment: f64,
+    pub rentals: Vec<RentalTransaction>,
+}
+
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct DistanceTravelled {
+    pub car_id: u64,
+    pub distance: f64,
+    pub current_timestamp: u64,
+    pub caller: Principal,
+    pub notes: Option<String>
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -167,6 +185,13 @@ impl RentalTransaction {
             end_timestamp: format_datetime(self.end_timestamp),
             total_amount: self.total_amount,
             payment_status: self.payment_status.clone(),
+        }
+    }
+
+    pub fn without_customer(&self) -> Self {
+        Self {
+            customer: None,
+            ..self.clone()
         }
     }
 

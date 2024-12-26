@@ -23,6 +23,7 @@ thread_local! {
         monitoring: MonitoringState::default(),
         controllers: Vec::new(),
         unpaid_bookings: Default::default(),
+        car_travel_details: Default::default()
     });
 }
 
@@ -62,6 +63,7 @@ fn pre_upgrade() {
             monitoring: state.borrow().monitoring.clone(),
             controllers: state.borrow().controllers.clone(),
             unpaid_bookings: state.borrow().unpaid_bookings.clone(),
+            car_travel_details: state.borrow().car_travel_details.clone(),
         },))
         .unwrap()
     });
