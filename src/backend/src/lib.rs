@@ -22,7 +22,7 @@ thread_local! {
         cars: BTreeMap::new(),
         monitoring: MonitoringState::default(),
         controllers: Vec::new(),
-        // mail_state: None,
+        unpaid_bookings: Default::default(),
     });
 }
 
@@ -61,7 +61,7 @@ fn pre_upgrade() {
             cars: state.borrow().cars.clone(),
             monitoring: state.borrow().monitoring.clone(),
             controllers: state.borrow().controllers.clone(),
-            // mail_state: state.borrow().mail_state.clone(),
+            unpaid_bookings: state.borrow().unpaid_bookings.clone(),
         },))
         .unwrap()
     });

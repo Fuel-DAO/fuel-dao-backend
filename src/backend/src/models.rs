@@ -2,13 +2,14 @@ use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::{api::monitoring::MonitoringState, utils::format_datetime};
+use crate::{api::monitoring::MonitoringState, utils::format_datetime, STATE};
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct State {
     pub cars: BTreeMap<u64, Car>,
     pub monitoring: MonitoringState,
     pub controllers: Vec<Principal>,
+    pub unpaid_bookings: BTreeMap<u64, RentalTransaction>,
     // pub mail_state: Option<MailState>,
 }
 
@@ -168,6 +169,18 @@ impl RentalTransaction {
             payment_status: self.payment_status.clone(),
         }
     }
+
+    pub fn save_to_unpaid_bookings(&self) {
+        STATE.with(|state| {
+            state.borrow_mut().unpaid_bookings.insert(self.booking_id, self.clone());
+        });
+    }
+
+    pub fn remove_from_unpaid_bookings_by_booking_id(&self) {
+        STATE.with(|state| {
+            state.borrow_mut().unpaid_bookings.remove(&self.booking_id);
+        });
+    }
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -179,6 +192,7 @@ pub struct CustomerDetials {
     pub age: u8,
     pub pan: String,
     pub aadhar: String,
+    pub caller: Principal,
 }
 
 impl CustomerDetials {
@@ -223,7 +237,18 @@ pub enum IdType {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct RazorpayPayment{
+    ref_id: String,
+    payment_id: String,
+    payment_link_id: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum PaymentStatus {
-    Paid,
+    Paid{
+        payment: RazorpayPayment
+    },
     Unpaid,
 }
+
+

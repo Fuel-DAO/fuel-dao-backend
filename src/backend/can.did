@@ -48,6 +48,7 @@ type CustomerDetials = record {
   name : text;
   email : text;
   country_code : text;
+  caller : principal;
   aadhar : text;
 };
 type EventMoniter = variant {
@@ -73,7 +74,15 @@ type Location = record {
   longitude : float64;
   address : text;
 };
-type PaymentStatus = variant { Paid; Unpaid };
+type PaymentStatus = variant {
+  Paid : record { payment : RazorpayPayment };
+  Unpaid;
+};
+type RazorpayPayment = record {
+  payment_link_id : opt text;
+  payment_id : text;
+  ref_id : text;
+};
 type RentalTransaction = record {
   end_timestamp : nat64;
   total_amount : float64;
@@ -109,12 +118,21 @@ service : () -> {
   get_controllers : () -> (vec principal) query;
   get_monitoring_events : () -> (vec EventMoniter) query;
   get_monitoring_events_for_user : (principal) -> (vec EventMoniter) query;
+  get_unpaid_booking_details_by_booking_id : (nat64) -> (
+      opt RentalTransaction,
+    ) query;
   greet : (text) -> (text) query;
   list_all_cars : () -> (vec Car);
   remove_car : (nat64) -> (opt Car);
   remove_controller : (principal) -> (Result);
-  reserve_car : (nat64, nat64, nat64, CustomerDetials) -> (Result_2);
+  reserve_car : (nat64, RazorpayPayment) -> (Result_2);
   search_car : (nat64, nat64) -> (vec Car);
   update_car : (nat64, CarDetails) -> ();
   user_bookings : (principal) -> (vec TransactionHistory) query;
+  validate_details_and_availaibility : (
+      nat64,
+      nat64,
+      nat64,
+      CustomerDetials,
+    ) -> (Result_2);
 }

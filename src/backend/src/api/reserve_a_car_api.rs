@@ -8,72 +8,82 @@ use ic_cdk_macros::update;
 // use super::monitoring::log_car_checkout;
 use crate::controller::is_controller;
 use crate::{
-    Car, CarStatus, CustomerDetials, PaymentStatus, RentalTransaction, TransactionHistory, STATE,
+    Car, CarStatus, CustomerDetials, PaymentStatus, RazorpayPayment, RentalTransaction, TransactionHistory, STATE
 };
 
 // use super::monitoring::log_car_checkout;
 // use super::send_email::{refresh_token, send_email_gmail};
+
+#[query] 
+fn get_unpaid_booking_details_by_booking_id(booking_id: u64) -> Option<RentalTransaction> {
+    STATE.with(|f| f.borrow().unpaid_bookings.get(&booking_id).cloned())
+}  
+
 #[update]
-async fn reserve_car(
+fn validate_details_and_availaibility(
     car_id: u64,
     start_timestamp: u64,
     end_timestamp: u64,
-    customer: CustomerDetials,
-) -> Result<RentalTransaction, String> {
-    if start_timestamp >= end_timestamp || start_timestamp < (time() / 1_000_000_000) {
-        return Err("Invalid time range".to_string());
-    }
+    customer: CustomerDetials,) -> Result<RentalTransaction, String> {
 
-    customer.validate_details()?;
+        if start_timestamp >= end_timestamp || start_timestamp < (time() / 1_000_000_000) {
+            return Err("Invalid time range".to_string());
+        }
+
+        customer.validate_details()?;
+
+       let rental_booking = match   STATE.with_borrow(|f| f.clone()).cars.get(&car_id).map(|car| car_availibility(car.clone(), start_timestamp, end_timestamp, customer.caller)) {
+           Some(f) => f,
+           None => return  Err("Invalid data".to_string()),
+       };
+
+       rental_booking.map(|mut f| {
+        f.customer = Some(customer);
+        f.save_to_unpaid_bookings(); 
+        f
+       })
+}
+
+#[update(guard = "is_controller")]
+async fn reserve_car(
+    // car_id: u64,
+    // start_timestamp: u64,
+    // end_timestamp: u64,
+    // customer: CustomerDetials,
+    booking_id: u64,
+    payment: RazorpayPayment
+) -> Result<RentalTransaction, String> {
+
+    let mut booking = get_unpaid_booking_details_by_booking_id(booking_id).ok_or("Invalid booking id".to_string())?;
+
+    let car_id = booking.car_id;
+
+    booking.payment_status = PaymentStatus::Paid { payment };
 
     let transaction = STATE.with(|state| {
         let mut state = state.borrow_mut();
-
+        // Get all the details from unpaid bookings based on booking_id
         match state.cars.get_mut(&car_id) {
-            Some(car) => match car_availibility(car.clone(), start_timestamp, end_timestamp) {
-                Ok(mut transaction) => {
-                    transaction.customer = Some(customer);
-                    car.bookings
-                        .insert(transaction.booking_id, transaction.clone());
-                    state.monitoring.log_car_checkout(caller(), car_id, transaction.booking_id);
-                    Ok(transaction)
-                }
-                _ => Err("Car is not available".to_string()),
+            Some(car) => {
+                car.bookings.insert(booking_id, booking.clone());
+                state.monitoring.log_car_checkout(booking.customer_principal_id, car_id, booking_id);
+                Ok(booking)
             },
             None => Err("Car not found".to_string()),
         }
     });
-    //
-    // if transaction.is_ok() {
-    //     log_car_checkout(car_id, transaction.as_ref().unwrap().booking_id);
-    //
-    //     let mail_status = send_email_gmail(transaction.clone().unwrap()).await;
-    //
-    //     match mail_status {
-    //         Err(e) if e.contains("invalid_token") => {
-    //             let _ = refresh_token().await;
-    //             let _ = send_email_gmail(transaction.clone().unwrap()).await;
-    //         }
-    //         _ => {}
-    //     }
-    // }
-    
-    // match &transaction {
-    //     Ok(tx) => {
-    //         log_car_checkout(car_id, tx.booking_id)
-    //     }, Err(_) => {}
-    // };
-    transaction
+    transaction.map(|f| { f.remove_from_unpaid_bookings_by_booking_id() ; f})
 }
 
 pub fn car_availibility(
     car: Car,
     start_timestamp: u64,
     end_timestamp: u64,
+    caller: Principal,
 ) -> Result<RentalTransaction, String> {
     match car.get_booking_status_at_give_time_period(start_timestamp, end_timestamp) {
         CarStatus::Available => {
-            let customer_id = ic_cdk::caller();
+            let customer_id = caller;
 
             let total_days = (end_timestamp - start_timestamp) as f64 / 86400.0;
             let total_amount = car.details.current_price_per_day * total_days as f64;
