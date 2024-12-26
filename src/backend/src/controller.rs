@@ -26,7 +26,7 @@ fn get_controllers() -> Vec<Principal> {
 }
 
 
-#[ic_cdk_macros::update]
+#[ic_cdk_macros::update(guard = "is_controller")]
 pub fn add_controller(new_controller: Principal) -> Result<(), String> {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
