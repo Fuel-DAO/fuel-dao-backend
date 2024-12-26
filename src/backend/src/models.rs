@@ -2,14 +2,33 @@ use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::{api::monitoring::MonitoringState, utils::format_datetime};
+use crate::{api::monitoring::MonitoringState, utils::format_datetime, STATE};
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct State {
     pub cars: BTreeMap<u64, Car>,
     pub monitoring: MonitoringState,
     pub controllers: Vec<Principal>,
-    // pub mail_state: Option<MailState>,
+    pub unpaid_bookings: BTreeMap<u64, RentalTransaction>,
+    pub car_travel_details: BTreeMap<u64, DistanceTravelled>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct CarTravelStats {
+    pub total_revenue: f64,
+    pub total_distance_travelled: f64,
+    pub total_investment: f64,
+    pub rentals: Vec<RentalTransaction>,
+}
+
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct DistanceTravelled {
+    pub car_id: u64,
+    pub distance: f64,
+    pub current_timestamp: u64,
+    pub caller: Principal,
+    pub notes: Option<String>
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -168,6 +187,25 @@ impl RentalTransaction {
             payment_status: self.payment_status.clone(),
         }
     }
+
+    pub fn without_customer(&self) -> Self {
+        Self {
+            customer: None,
+            ..self.clone()
+        }
+    }
+
+    pub fn save_to_unpaid_bookings(&self) {
+        STATE.with(|state| {
+            state.borrow_mut().unpaid_bookings.insert(self.booking_id, self.clone());
+        });
+    }
+
+    pub fn remove_from_unpaid_bookings_by_booking_id(&self) {
+        STATE.with(|state| {
+            state.borrow_mut().unpaid_bookings.remove(&self.booking_id);
+        });
+    }
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -179,6 +217,7 @@ pub struct CustomerDetials {
     pub age: u8,
     pub pan: String,
     pub aadhar: String,
+    pub caller: Principal,
 }
 
 impl CustomerDetials {
@@ -223,7 +262,18 @@ pub enum IdType {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct RazorpayPayment{
+    ref_id: String,
+    payment_id: String,
+    payment_link_id: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum PaymentStatus {
-    Paid,
+    Paid{
+        payment: RazorpayPayment
+    },
     Unpaid,
 }
+
+

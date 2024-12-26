@@ -42,7 +42,6 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 name = "asset_proxy"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
  "candid",
  "ic-cdk 0.16.0",
  "ic-cdk-macros 0.16.0",
@@ -65,7 +64,6 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 name = "backend"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
  "candid",
  "ic-cdk 0.16.0",
  "ic-cdk-macros 0.16.0",

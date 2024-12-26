@@ -164,7 +164,8 @@ fn test_reserve_car() {
         mobile_number: "9876543210".into(),
         age: 18, 
         pan: "USERPAN127NO".into(),
-        aadhar:"123456789012".into()
+        aadhar:"123456789012".into(), 
+        caller: Principal::anonymous(),
     };
 
     let reservation = canister.reserve_car(car_id, start_time, end_time, customer.clone());
