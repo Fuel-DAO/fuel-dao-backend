@@ -8,7 +8,7 @@ fn get_car_details(car_id: u64, start_time: u64, end_time: u64) -> Option<CarAva
     log_car_selection(car_id);
     STATE.with(|state| {
         let state: std::cell::Ref<'_, crate::State> = state.borrow();
-        state.cars.get(&car_id).cloned().map(|mut f| {f.details.status = f.get_booking_status_at_give_time_period(start_time, end_time);  CarAvailability{
+        state.cars.get(&car_id).map(|mut f| {f.details.status = f.get_booking_status_at_give_time_period(start_time, end_time);  CarAvailability{
             details: f.details.clone(), 
             available: car_availibility(f.clone(), start_time, end_time, caller()).ok()
         }  }) 

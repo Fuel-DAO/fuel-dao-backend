@@ -1,17 +1,17 @@
+// use std::collections::BTreeMap;
+
 use candid::{CandidType, Principal};
+use ic_stable_structures::btreemap::BTreeMap;
+use crate::life_cycle::memory::*;
+// use ic_stable_structures::Storable;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+// use std::{borrow::Cow, collections::BTreeMap};
+// use ic_stable_structures::{storable::Bound, StableBTreeMap, Storable};
 
 use crate::{api::monitoring::MonitoringState, utils::format_datetime, STATE};
+use crate::life_cycle::memory::Memory;
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct State {
-    pub cars: BTreeMap<u64, Car>,
-    pub monitoring: MonitoringState,
-    pub controllers: Vec<Principal>,
-    pub unpaid_bookings: BTreeMap<u64, RentalTransaction>,
-    pub car_travel_details: BTreeMap<u64, DistanceTravelled>,
-}
+
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct CarTravelStats {
@@ -35,7 +35,8 @@ pub struct DistanceTravelled {
 pub struct Car {
     pub id: u64,
     pub details: CarDetails,
-    pub bookings: BTreeMap<u64, RentalTransaction>,
+    pub bookings: std::collections::BTreeMap<u64, RentalTransaction>,
+    pub check: Option<bool>,
     // pub photos: Vec<String>
     // pub monitoring: Vec<EventMoniter>
 }
@@ -43,7 +44,7 @@ pub struct Car {
 impl Car {
     pub fn get_car_without_bookings(&self) -> Self {
         Self {
-            bookings: BTreeMap::new(),
+            bookings: std::collections::BTreeMap::new(),
             ..self.clone()
         }
     }
