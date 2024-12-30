@@ -1,4 +1,4 @@
-use candid::{Decode, Encode, Principal};
+use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{
     btreemap::BTreeMap,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory}, storable::Bound, DefaultMemoryImpl, Storable
@@ -20,6 +20,16 @@ pub struct State {
     pub unpaid_bookings: BTreeMap<u64, RentalTransaction, Memory>,
     #[serde(skip, default = "default_distance_details")]
     pub car_travel_details: BTreeMap<u64, DistanceTravelled, Memory>,
+}
+
+#[derive(Deserialize,Serialize, CandidType, Debug)]
+pub struct TempState {
+    pub cars: std::collections::BTreeMap<u64, Car>,
+    pub monitoring: MonitoringState,
+    // #[serde(skip, default = "default_controller_details")]
+    pub controllers: Vec<Principal>,
+    pub unpaid_bookings: std::collections::BTreeMap<u64, RentalTransaction>,
+    pub car_travel_details: std::collections::BTreeMap<u64, DistanceTravelled>,
 }
 
 // A memory for upgrades, where data from the heap can be serialized/deserialized.
