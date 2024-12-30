@@ -13,8 +13,8 @@ fn post_upgrade() {
     match state {
         Ok(state) => {
             STATE.with(|s| {
-                for value in state.0.car_travel_details.iter() {
-                    s.borrow_mut().car_travel_details.insert(*value.0, value.1.clone());
+                for value in state.0.cars.iter() {
+                    s.borrow_mut().cars.insert(*value.0, value.1.clone());
                 }
                 for value in state.0.unpaid_bookings.iter() {
                     s.borrow_mut().unpaid_bookings.insert(*value.0, value.1.clone());
