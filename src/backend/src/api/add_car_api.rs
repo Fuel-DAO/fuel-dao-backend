@@ -11,7 +11,7 @@ fn add_car(car: CarDetails) -> u64 {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
          let id = state.cars.last_key_value().map_or(1, |f| f.0 + 1);
-        state.cars.insert(id, crate::Car { id, details: CarDetails { id, ..car }, bookings: BTreeMap::new(), /* monitoring: Vec::new()  */});
+        state.cars.insert(id, crate::Car {check: Some(true),  id, details: CarDetails { id, ..car }, bookings: BTreeMap::new(), /* monitoring: Vec::new()  */});
         id
     })
 }
@@ -19,8 +19,8 @@ fn add_car(car: CarDetails) -> u64 {
 #[update(guard = "is_controller")]
 fn update_car(id: u64, car: CarDetails) {
     STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        state.cars.get_mut(&id).map(|f| {
+        let  state = &mut state.borrow_mut().cars.get(&id);
+        state.as_mut().map(|f| {
             f.details = car;
             f
         } );

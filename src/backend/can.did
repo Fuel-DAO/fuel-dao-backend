@@ -1,6 +1,7 @@
 type Car = record {
   id : nat64;
   bookings : vec record { nat64; RentalTransaction };
+  check : opt bool;
   details : CarDetails;
 };
 type CarAvailability = record {
@@ -113,7 +114,7 @@ type TransactionHistory = record {
   booking_id : nat64;
 };
 type TransmissionType = variant { Manual; Automatic };
-service : () -> {
+service : {
   add_car : (CarDetails) -> (nat64);
   add_controller : (principal) -> (Result);
   add_distance_travelled : (nat64, float64, opt text) -> ();

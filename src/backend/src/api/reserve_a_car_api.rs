@@ -16,7 +16,7 @@ use crate::{
 
 #[query] 
 fn get_unpaid_booking_details_by_booking_id(booking_id: u64) -> Option<RentalTransaction> {
-    STATE.with(|f| f.borrow().unpaid_bookings.get(&booking_id).cloned())
+    STATE.with(|f| f.borrow().unpaid_bookings.get(&booking_id))
 }  
 
 #[update]
@@ -32,7 +32,7 @@ fn validate_details_and_availaibility(
 
         customer.validate_details()?;
 
-       let rental_booking = match   STATE.with_borrow(|f| f.clone()).cars.get(&car_id).map(|car| car_availibility(car.clone(), start_timestamp, end_timestamp, customer.caller)) {
+       let rental_booking = match   STATE.with_borrow(|f| f.cars.get(&car_id)).map(|car| car_availibility(car.clone(), start_timestamp, end_timestamp, customer.caller)) {
            Some(f) => f,
            None => return  Err("Invalid data".to_string()),
        };
@@ -51,7 +51,7 @@ async fn reserve_car(
     // end_timestamp: u64,
     // customer: CustomerDetials,
     booking_id: u64,
-    payment: RazorpayPayment
+    payment: RazorpayPayment, 
 ) -> Result<RentalTransaction, String> {
 
     let mut booking = get_unpaid_booking_details_by_booking_id(booking_id).ok_or("Invalid booking id".to_string())?;
@@ -61,12 +61,12 @@ async fn reserve_car(
     booking.payment_status = PaymentStatus::Paid { payment };
 
     let transaction = STATE.with(|state| {
-        let mut state = state.borrow_mut();
+        let  car_state = &mut state.borrow_mut().cars.get(&car_id);
         // Get all the details from unpaid bookings based on booking_id
-        match state.cars.get_mut(&car_id) {
+        match car_state {
             Some(car) => {
                 car.bookings.insert(booking_id, booking.clone());
-                state.monitoring.log_car_checkout(booking.customer_principal_id, car_id, booking_id);
+                state.borrow_mut().monitoring.log_car_checkout(booking.customer_principal_id, car_id, booking_id);
                 Ok(booking)
             },
             None => Err("Car not found".to_string()),
@@ -142,8 +142,8 @@ pub fn booking_details(car_id: u64, booking_id: u64) -> Option<TransactionHistor
             .borrow()
             .cars
             .iter()
-            .find(|f| *f.0 == car_id)
-            .map(|f| f.1.bookings.get(&booking_id))
+            .find(|f| f.0 == car_id)
+            .map(|f| f.1.bookings.get(&booking_id).cloned())
             .flatten()
             .map(|f| f.to_transaction_history())
     })

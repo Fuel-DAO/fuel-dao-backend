@@ -6,8 +6,8 @@ use crate::is_controller;
 fn cancel_reservation(car_id: u64, booking_id: u64) -> Result<String, String> {
     // let customer_id = ic_cdk::caller();
     STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        if let Some(car) = state.cars.get_mut(&car_id) {
+        let  state = &mut state.borrow_mut().cars.get(&car_id);
+        if let Some(car) = state {
             let booking =  car.bookings.remove(&booking_id);
             match booking {
                 Some(_) =>  return Ok("Reservation cancelled".to_string()),
