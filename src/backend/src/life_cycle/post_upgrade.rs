@@ -9,7 +9,6 @@ use crate::{life_cycle::memory::State, STATE};
 #[post_upgrade]
 fn post_upgrade() {
     let state: Result<(TempState,), String> = storage::stable_restore();
-    ic_cdk::println!("Post upgrade called {:?}", state);
     match state {
         Ok(state) => {
             STATE.with(|s| {
