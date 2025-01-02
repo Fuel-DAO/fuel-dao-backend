@@ -326,10 +326,11 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     //     .map_err(|err| ApproveError::GrantPermissionsError(err))?;
 
     STATE.with_borrow_mut(|f| {
-        if let Some(req) = &mut f.collection_requests.get(&id) {
+        if let Some(mut req) =  f.collection_requests.get(&id) {
             req.config.approval_status = ConfigStatus::Approved;
             req.config.asset_canister = Some(asset_canister_id);
             req.config.token_canister = Some(token_canister_id);
+            f.collection_requests.insert(id, req);
         }
     });
 

@@ -8,8 +8,8 @@ use crate::{life_cycle::memory::State, state::TempState, STATE};
 
 #[post_upgrade]
 fn post_upgrade() {
-    // post_upgrade_storage();
-    restore_data_from_stable_memory();
+    post_upgrade_storage();
+    // restore_data_from_stable_memory();
 }
 
 fn post_upgrade_storage() {
