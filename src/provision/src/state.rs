@@ -8,7 +8,7 @@ use crate::admin::admin::is_controller;
 
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
-pub struct State {
+pub struct TempState {
     pub asset_wasm: Option<Vec<u8>>,
     pub token_wasm: Option<Vec<u8>>,
     pub admins: Vec<Principal>,

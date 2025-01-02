@@ -1,4 +1,4 @@
-use candid::{CandidType, Decode, Encode, Principal};
+use candid::{ Decode, Encode, Principal};
 use ic_stable_structures::{
     btreemap::BTreeMap,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory}, storable::Bound, DefaultMemoryImpl, Storable
@@ -32,7 +32,7 @@ const UPGRADES: MemoryId = MemoryId::new(1);
 const STABLE_CARS_MEMORY: MemoryId = MemoryId::new(2);
 const STABLE_RENTAL_TX_MEMORY: MemoryId = MemoryId::new(3);
 const STABLE_DISTANCE_MEMORY: MemoryId = MemoryId::new(4);
-const STABLE_CONTROLLER_MEMORY: MemoryId = MemoryId::new(5);
+// const STABLE_CONTROLLER_MEMORY: MemoryId = MemoryId::new(5);
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -76,15 +76,15 @@ pub fn default_rental_tx_details(
     ic_stable_structures::btreemap::BTreeMap::init(get_rental_tx_memory())
 }
 
- fn get_controllers_memory() -> Memory {
-    MEMORY_MANAGER.with(|m| m.borrow_mut().get(STABLE_CONTROLLER_MEMORY))
-}
+//  fn get_controllers_memory() -> Memory {
+//     MEMORY_MANAGER.with(|m| m.borrow_mut().get(STABLE_CONTROLLER_MEMORY))
+// }
 
 
- fn default_controller_details(
-) -> ic_stable_structures::vec::Vec<Principal, Memory> {
-    ic_stable_structures::vec::Vec::init(get_controllers_memory()).expect("failed to get Default controllers")
-}
+//  fn default_controller_details(
+// ) -> ic_stable_structures::vec::Vec<Principal, Memory> {
+//     ic_stable_structures::vec::Vec::init(get_controllers_memory()).expect("failed to get Default controllers")
+// }
 
 pub fn get_distance_memory() -> Memory {
     MEMORY_MANAGER.with(|m| m.borrow_mut().get(STABLE_DISTANCE_MEMORY))
