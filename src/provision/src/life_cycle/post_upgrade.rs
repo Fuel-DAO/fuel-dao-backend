@@ -4,33 +4,33 @@ use ic_cdk_macros::post_upgrade;
 use ic_stable_structures::Memory;
 use super::memory::{self};
 
-use crate::{life_cycle::memory::State, state::TempState, STATE};
+use crate::{life_cycle::memory::State, STATE};
 
 #[post_upgrade]
 fn post_upgrade() {
-    post_upgrade_storage();
-    // restore_data_from_stable_memory();
+    // post_upgrade_storage();
+    restore_data_from_stable_memory();
 }
 
-fn post_upgrade_storage() {
-    let state: Result<(TempState, ), String> = storage::stable_restore();
-    match state {
-        Ok(state) => {
-            STATE.with(|s| {
-                for value in state.0.collection_requests.iter() {
-                    s.borrow_mut().collection_requests.insert(*value.0, value.1.clone());
-                }
+// fn post_upgrade_storage() {
+//     let state: Result<(TempState, ), String> = storage::stable_restore();
+//     match state {
+//         Ok(state) => {
+//             STATE.with(|s| {
+//                 for value in state.0.collection_requests.iter() {
+//                     s.borrow_mut().collection_requests.insert(*value.0, value.1.clone());
+//                 }
                 
-                s.borrow_mut().admins = state.0.admins;
-                s.borrow_mut().asset_proxy_canister = state.0.asset_proxy_canister.clone();
-                s.borrow_mut().asset_wasm = state.0.asset_wasm.clone();
-                s.borrow_mut().token_wasm = state.0.token_wasm.clone();
-                  });
-        }, Err(e) => {
-            println!("Failed to do post upgrade {e}");
-        }
-    }
-}
+//                 s.borrow_mut().admins = state.0.admins;
+//                 s.borrow_mut().asset_proxy_canister = state.0.asset_proxy_canister.clone();
+//                 s.borrow_mut().asset_wasm = state.0.asset_wasm.clone();
+//                 s.borrow_mut().token_wasm = state.0.token_wasm.clone();
+//                   });
+//         }, Err(e) => {
+//             println!("Failed to do post upgrade {e}");
+//         }
+//     }
+// }
 
 fn restore_data_from_stable_memory() {
     let heap_data = memory::get_upgrades_memory();
