@@ -114,6 +114,25 @@ type TransactionHistory = record {
   booking_id : nat64;
 };
 type TransmissionType = variant { Manual; Automatic };
+type UpdateCarDetails = record {
+  status : opt CarStatus;
+  model : opt text;
+  mileage : opt nat32;
+  make : opt text;
+  color : opt text;
+  year : opt nat32;
+  description : opt text;
+  current_price_per_day : opt float64;
+  default_image_url : opt text;
+  car_type : opt CarType;
+  pickup_location : opt Location;
+  dropoff_location : opt Location;
+  capacity : opt nat8;
+  fuel_type : opt FuelType;
+  price_per_day : opt float64;
+  transmission_type : opt TransmissionType;
+  images : opt vec text;
+};
 service : {
   add_car : (CarDetails) -> (nat64);
   add_controller : (principal) -> (Result);
@@ -137,6 +156,7 @@ service : {
   reserve_car : (nat64, RazorpayPayment) -> (Result_2);
   search_car : (nat64, nat64) -> (vec Car);
   update_car : (nat64, CarDetails) -> ();
+  update_car_details_by_id : (nat64, UpdateCarDetails) -> ();
   user_bookings : (principal) -> (vec TransactionHistory) query;
   validate_details_and_availaibility : (
       nat64,

@@ -1,5 +1,6 @@
 use std::{cell::RefCell, collections::BTreeMap};
 pub mod models;
+pub use crate::api::add_car_api::*;
 use life_cycle::memory::State;
 pub use models::*;
 mod api;
