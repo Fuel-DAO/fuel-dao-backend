@@ -1,21 +1,18 @@
-use std::collections::BTreeMap;
 
-use candid::{CandidType, Principal};
-use serde::{Deserialize, Serialize};
 
-use crate::{collection::*, STATE};
+use crate::STATE;
 use crate::admin::admin::is_controller;
 
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
-pub struct State {
-    pub asset_wasm: Option<Vec<u8>>,
-    pub token_wasm: Option<Vec<u8>>,
-    pub admins: Vec<Principal>,
-    pub collection_requests: BTreeMap<u64,CollectionRequestConfig>,
-    pub asset_proxy_canister: Option<Principal>,
+// #[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
+// pub struct TempState {
+//     pub asset_wasm: Option<Vec<u8>>,
+//     pub token_wasm: Option<Vec<u8>>,
+//     pub admins: Vec<Principal>,
+//     pub collection_requests: BTreeMap<u64,CollectionRequestConfig>,
+//     pub asset_proxy_canister: Option<Principal>,
 
-}
+// }
 
 #[ic_cdk_macros::update (guard = "is_controller") ]
 fn add_token_wasm(wasm: Vec<u8>) -> bool {

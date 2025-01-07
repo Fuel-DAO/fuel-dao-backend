@@ -87,13 +87,13 @@ pub fn log_car_selection(car_id: u64) {
     });
 }
 
-pub fn log_car_checkout(car_id: u64, car_booking_id: u64) {
-    STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        let user = ic_cdk::caller();
-        state.monitoring.log_car_checkout(user, car_id, car_booking_id);
-    });
-}
+// pub fn log_car_checkout(car_id: u64, car_booking_id: u64) {
+//     STATE.with(|state| {
+//         let mut state = state.borrow_mut();
+//         let user = ic_cdk::caller();
+//         state.monitoring.log_car_checkout(user, car_id, car_booking_id);
+//     });
+// }
 
 #[ic_cdk_macros::query (guard = "is_controller") ]
 fn get_monitoring_events() -> Vec<EventMoniter> {
