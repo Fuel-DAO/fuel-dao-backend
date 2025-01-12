@@ -1,8 +1,8 @@
 use candid::{Nat, Principal};
 use ic_cdk::caller;
 use crate::state::metadata::UpdateMetadataArgs;
-use crate::state::subaccount::Subaccount;
-use crate::validations::{check_collection_owner,check_not_anonymous};
+use crate::state::State;
+use crate::validations::check_collection_owner;
 use crate::{BookTokensArg, Icrc7BalanceOfArgItem, Icrc7OwnerOfRetItemInner, Icrc7TokenMetadataRetItemInnerItem1, Icrc7TokensOfArg, Icrc7TransferArgItem, Icrc7TransferRetItemInner};
 use crate::{state::{escrow::SaleStatus, models::{GetEscrowAccountRet, GetMetadataRet}}, STATE};
 use ic_cdk_macros::*;
@@ -107,13 +107,30 @@ pub async fn get_escrow_account() -> Result<GetEscrowAccountRet, String> {
 #[query]
 pub async fn get_metadata() -> Result<GetMetadataRet, String> {
     STATE.with( |f|  f.borrow().clone() )
-    .get_metadata().await 
+    .get_metadata() 
 }
 
 #[query]
 pub async fn get_participating_investors() -> Vec<Principal> {
     STATE.with( |f|  f.borrow().clone() )
     .get_participating_investors().await 
+}
+
+#[query]
+pub async fn canister_escrow_account() -> String {
+    State::canister_escrow_account()
+}
+
+#[update]
+pub async fn canister_balance_in_icp() -> Result<f64, String> {
+    STATE.with( |f|  f.borrow().clone() )
+    .canister_balance_in_icp().await 
+}
+
+#[update(guard = "check_collection_owner")]
+pub async fn trasfer_icp_to_investors(icp: f64) -> Result<String, String> {
+    STATE.with( |f|  f.borrow().clone() )
+    .trasfer_icp_to_investors(icp).await 
 }
 
 

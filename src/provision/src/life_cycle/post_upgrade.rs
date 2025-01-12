@@ -1,5 +1,4 @@
 use ciborium::de;
-use ic_cdk::storage;
 use ic_cdk_macros::post_upgrade;
 use ic_stable_structures::Memory;
 use super::memory::{self};

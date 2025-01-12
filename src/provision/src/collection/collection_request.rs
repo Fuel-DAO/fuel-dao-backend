@@ -235,9 +235,10 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     collection.config.asset_canister = Some(deploy_asset_result);
 
     STATE.with_borrow_mut(|f| {
-       match  &mut f.collection_requests.get(&id) {
-        Some(collection) => {
+       match  f.collection_requests.get(&id) {
+        Some(mut collection) => {
             collection.config.asset_canister = Some(deploy_asset_result);
+            f.collection_requests.insert(id,collection);
         },
         None => {}
        }
@@ -246,36 +247,38 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     // Step 3: Deploy the asset canister
     let asset_canister_id = deploy_asset_result;
 
-    let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
-        .ok_or(String::from("Asset Proxy canister not set"))?;
-
-    // // Step 4: Grant proxy permissions ///TODO:// Use
-    grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
-
     let request = collection.request.clone();
-    // // Step 5: Prepare the files for approval
-    let approved_files: Vec<String> = collection
-        .request
-        .documents
-        .iter()
-        .map(|doc| doc.1.clone())
-        .chain(collection.request.images.clone())
-        .chain(if !&request.logo.is_empty() {
-            vec![request.logo.clone()]
-        } else {
-            vec![]
-        })
-        .collect();
 
-    // // Step 6: TODO:// Approve the files
-    approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
 
-    // // Step 7: Revoke proxy permissions
-    revoke_asset_edit_perms(
-        asset_canister_id,
-        asset_proxy_canister,
-    )
-    .await?;
+    // let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
+    //     .ok_or(String::from("Asset Proxy canister not set"))?;
+
+    // // // Step 4: Grant proxy permissions ///TODO:// Use
+    // grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
+
+    // // // Step 5: Prepare the files for approval
+    // let approved_files: Vec<String> = collection
+    //     .request
+    //     .documents
+    //     .iter()
+    //     .map(|doc| doc.1.clone())
+    //     .chain(collection.request.images.clone())
+    //     .chain(if !&request.logo.is_empty() {
+    //         vec![request.logo.clone()]
+    //     } else {
+    //         vec![]
+    //     })
+    //     .collect();
+
+    // // // Step 6: TODO:// Approve the files
+    // approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
+
+    // // // Step 7: Revoke proxy permissions
+    // revoke_asset_edit_perms(
+    //     asset_canister_id,
+    //     asset_proxy_canister,
+    // )
+    // .await?;
 
     // // Step 8: Deploy the token canister
     let collection_owner = collection.config.collection_owner.clone();
@@ -308,9 +311,10 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     collection.config.token_canister = Some(token_canister_id);
 
     STATE.with_borrow_mut(|f| {
-        match  &mut f.collection_requests.get(&id) {
-         Some(collection) => {
+        match   f.collection_requests.get(&id) {
+         Some(mut collection) => {
              collection.config.token_canister = Some(token_canister_id);
+             f.collection_requests.insert(id, collection);
          },
          None => {}
         }
