@@ -250,35 +250,35 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     let request = collection.request.clone();
 
 
-    // let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
-    //     .ok_or(String::from("Asset Proxy canister not set"))?;
+    let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
+        .ok_or(String::from("Asset Proxy canister not set"))?;
 
     // // // Step 4: Grant proxy permissions ///TODO:// Use
-    // grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
+    grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
 
-    // // // Step 5: Prepare the files for approval
-    // let approved_files: Vec<String> = collection
-    //     .request
-    //     .documents
-    //     .iter()
-    //     .map(|doc| doc.1.clone())
-    //     .chain(collection.request.images.clone())
-    //     .chain(if !&request.logo.is_empty() {
-    //         vec![request.logo.clone()]
-    //     } else {
-    //         vec![]
-    //     })
-    //     .collect();
+    // // Step 5: Prepare the files for approval
+    let approved_files: Vec<String> = collection
+        .request
+        .documents
+        .iter()
+        .map(|doc| doc.1.clone())
+        .chain(collection.request.images.clone())
+        .chain(if !&request.logo.is_empty() {
+            vec![request.logo.clone()]
+        } else {
+            vec![]
+        })
+        .collect();
 
-    // // // Step 6: TODO:// Approve the files
-    // approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
+    // // Step 6: TODO:// Approve the files
+    approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
 
-    // // // Step 7: Revoke proxy permissions
-    // revoke_asset_edit_perms(
-    //     asset_canister_id,
-    //     asset_proxy_canister,
-    // )
-    // .await?;
+    // // Step 7: Revoke proxy permissions
+    revoke_asset_edit_perms(
+        asset_canister_id,
+        asset_proxy_canister,
+    )
+    .await?;
 
     // // Step 8: Deploy the token canister
     let collection_owner = collection.config.collection_owner.clone();
@@ -337,6 +337,133 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
             f.collection_requests.insert(id, req);
         }
     });
+
+    // // Step 11: Return the success response
+    Ok(ListCollection {
+        id,
+        asset_canister: asset_canister_id,
+        token_canister: token_canister_id,
+    })
+}
+
+
+#[ic_cdk_macros::update(guard = "is_controller")]
+pub async fn approve_assets_for_a_collection_and_admin_as_token_for_depoyed(id: u64) -> Result<ListCollection, String> {
+    let  collection = &mut  STATE.with_borrow_mut(|f| f.collection_requests.get(&id));
+    let collection = match collection {
+        Some(c) => c,
+        None => return Err("Invalid collection Request".into()),
+    };
+
+    let deploy_asset_result = match collection.config.asset_canister {
+        Some(p) => p,
+        None => return  Err("Asset canister is not deployed for this listing".into()),
+    };
+
+    collection.config.asset_canister = Some(deploy_asset_result);
+
+    STATE.with_borrow_mut(|f| {
+       match  f.collection_requests.get(&id) {
+        Some(mut collection) => {
+            collection.config.asset_canister = Some(deploy_asset_result);
+            f.collection_requests.insert(id,collection);
+        },
+        None => {}
+       }
+    });
+
+    let asset_canister_id = deploy_asset_result;
+
+    let request = collection.request.clone();
+
+
+    let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
+        .ok_or(String::from("Asset Proxy canister not set"))?;
+
+    // // // Step 4: Grant proxy permissions ///TODO:// Use
+    grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
+
+    // // Step 5: Prepare the files for approval
+    let approved_files: Vec<String> = collection
+        .request
+        .documents
+        .iter()
+        .map(|doc| doc.1.clone())
+        .chain(collection.request.images.clone())
+        .chain(if !&request.logo.is_empty() {
+            vec![request.logo.clone()]
+        } else {
+            vec![]
+        })
+        .collect();
+
+    // // Step 6: TODO:// Approve the files
+    approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
+
+    // // Step 7: Revoke proxy permissions
+    revoke_asset_edit_perms(
+        asset_canister_id,
+        asset_proxy_canister,
+    )
+    .await?;
+
+    // // Step 8: Deploy the token canister
+    let collection_owner = collection.config.collection_owner.clone();
+    let asset_canister = asset_canister_id;
+    let mut token_metadata = request
+        .clone()
+        .into_metadata(collection_owner, asset_canister);
+
+    if !request.logo.is_empty() {
+        token_metadata.logo = format!(
+            "https://{}.icp0.io{}",
+            asset_canister_id.to_string(),
+            request.logo
+        );
+    }
+
+    // let wasm = include_bytes!("../../../../wasm/token/token.wasm.gz").to_vec();
+    // let wasm= match STATE.with_borrow(|f|f.token_wasm.clone() )     {
+    //     Some(wasm) =>wasm,
+    //     None => return Err("Token wasm not set".into()),
+    // } ;
+
+    let deploy_token_result = match collection.config.token_canister {
+        Some(p) => p,
+        None => return  Err("Token canister is not yet deployed".into()),
+    };
+
+    let token_canister_id = deploy_token_result;
+
+    collection.config.token_canister = Some(token_canister_id);
+
+    // STATE.with_borrow_mut(|f| {
+    //     match   f.collection_requests.get(&id) {
+    //      Some(mut collection) => {
+    //          collection.config.token_canister = Some(token_canister_id);
+    //          f.collection_requests.insert(id, collection);
+    //      },
+    //      None => {}
+    //     }
+    //  });
+
+    // collection.config.approval_status = ConfigStatus::Approved;
+
+    // // Step 9: Grant admin and edit permissions
+    let _ = grant_asset_admin_perms(asset_canister_id, token_canister_id).await?;
+    //     .map_err(|err| ApproveError::GrantPermissionsError(err))?;
+
+    grant_asset_edit_perms(asset_canister_id, collection_owner.clone()).await?;
+    //     .map_err(|err| ApproveError::GrantPermissionsError(err))?;
+
+    // STATE.with_borrow_mut(|f| {
+    //     if let Some(mut req) =  f.collection_requests.get(&id) {
+    //         req.config.approval_status = ConfigStatus::Approved;
+    //         req.config.asset_canister = Some(asset_canister_id);
+    //         req.config.token_canister = Some(token_canister_id);
+    //         f.collection_requests.insert(id, req);
+    //     }
+    // });
 
     // // Step 11: Return the success response
     Ok(ListCollection {

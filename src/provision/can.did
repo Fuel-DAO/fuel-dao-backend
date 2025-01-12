@@ -43,6 +43,9 @@ service : () -> {
   add_asset_wasm : (blob) -> (bool);
   add_collection_request : (CollectionRequest) -> (Result);
   add_token_wasm : (blob) -> (bool);
+  approve_assets_for_a_collection_and_admin_as_token_for_depoyed : (nat64) -> (
+      Result_1,
+    );
   approve_request : (nat64) -> (Result_1);
   delete_collection : (nat64) -> (Result_2);
   get_asset_proxy_canister : () -> (opt principal) query;
