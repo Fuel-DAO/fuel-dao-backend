@@ -274,7 +274,7 @@ impl State {
 
         ic_cdk::println!("Escrow balance {escrow_balance}, cost {total_cost} ");
 
-        if &escrow_store.total_booked_tokens + &(arg.quantity as u128) > metadata.supply_cap {
+        if &escrow_store.get_total_booked_tokens() + &(arg.quantity as u128) > metadata.supply_cap {
             return Err("Supply cap reached.".to_string());
         }
 

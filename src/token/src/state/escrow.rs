@@ -64,7 +64,7 @@ impl EscrowStore {
 
     /// Get the total number of booked tokens
     pub fn get_total_booked_tokens(&self) -> u128 {
-        self.total_booked_tokens
+        self.booked_tokens.iter().map(|f| f.1).sum()
     }
 
     /// Book tokens for a specific owner
