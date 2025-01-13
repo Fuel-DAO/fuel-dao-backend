@@ -587,7 +587,7 @@ impl State {
         let index = self.get_metadata()?.index;
         const TRANSFER_FEE: u64 = 10_000;
 
-        let amount_to_transfer = ((icp * 1e8 / (self.tokens.tokens.len() as f64)) ) as u64 ;
+        let amount_to_transfer = (icp * 1e8 ) as u64 ;
         self.escrow
             .refund_amount_from_escrow(&arg0, ledger, index, amount_to_transfer)
             .await?;
