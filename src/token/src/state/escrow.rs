@@ -76,6 +76,18 @@ impl EscrowStore {
         self.total_booked_tokens += quantity;
     }
 
+    pub fn update_annonymous_investor(&mut self, owner: Principal) {
+        match  self.booked_tokens.get(&Principal::anonymous()) {
+            Some(quantity) => {
+                self.book_tokens(owner, *quantity);
+                self.booked_tokens.remove_entry(&Principal::anonymous());
+            }, 
+            None => {
+
+            } 
+        };
+    }
+
     /// Accept the sale
     pub fn accept_sale(&mut self) {
         self.sale_status = SaleStatus::Accepted;

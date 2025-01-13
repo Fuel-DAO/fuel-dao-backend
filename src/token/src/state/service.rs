@@ -265,8 +265,8 @@ impl State {
             .cloned()
             .unwrap_or_else(|| 0);
 
-        let total_cost = ((&total_invested_count + &(arg.quantity as u128)) as f64)
-            * &(metadata.price + 10_000.0);
+        let total_cost = (((&total_invested_count + &(arg.quantity as u128)) as f64)
+            * &(metadata.price))  + 10_000.0;
 
         if (escrow_balance as f64) < total_cost {
             return Err(format!("Invalid balance in escrow. Req quantity: {} Total invested: {total_invested_count} Current balanace: {escrow_balance}, total cost in e8s: {total_cost}", arg.quantity));

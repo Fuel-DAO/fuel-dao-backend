@@ -123,6 +123,7 @@ type Result_3 = variant { Ok : GetEscrowAccountRet; Err : text };
 type Result_4 = variant { Ok : vec principal; Err : text };
 type Result_5 = variant { Ok : GetMetadataRet; Err : text };
 type Result_6 = variant { Ok : text; Err : text };
+type Result_7 = variant { Ok; Err : text };
 type SaleStatus = variant { Live; Rejected; Accepted };
 type SupportedStandard = record { url : text; name : text };
 type TransferArg = record {
@@ -211,6 +212,7 @@ service : (CanisterArgs) -> {
   refund_excess_after_sale : (principal) -> (Result);
   reject_sale : () -> (Result);
   trasfer_icp_to_investors : (float64) -> (Result_6);
+  update_annonymous_investor : (principal) -> (Result_7);
   update_metadata : (UpdateMetadataArgs) -> (Result_2);
   update_sale_status : (SaleStatus) -> (SaleStatus);
 }

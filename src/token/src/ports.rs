@@ -2,7 +2,7 @@ use candid::{Nat, Principal};
 use ic_cdk::caller;
 use crate::state::metadata::UpdateMetadataArgs;
 use crate::state::State;
-use crate::validations::check_collection_owner;
+use crate::validations::{check_collection_owner, check_not_anonymous};
 use crate::{BookTokensArg, Icrc7BalanceOfArgItem, Icrc7OwnerOfRetItemInner, Icrc7TokenMetadataRetItemInnerItem1, Icrc7TokensOfArg, Icrc7TransferArgItem, Icrc7TransferRetItemInner};
 use crate::{state::{escrow::SaleStatus, models::{GetEscrowAccountRet, GetMetadataRet}}, STATE};
 use ic_cdk_macros::*;
@@ -19,8 +19,13 @@ pub async fn update_metadata( arg0: UpdateMetadataArgs) -> Result<Nat, String> {
 }
 
 
-// #[update(guard = "check_not_anonymous")]
-#[update]
+#[update(guard = "check_collection_owner")]
+pub fn update_annonymous_investor(new_investor: Principal) -> Result<(), String> {
+    STATE.with_borrow_mut(|f|  {f.escrow.update_annonymous_investor(new_investor); Ok(())} )
+}
+
+
+#[update(guard = "check_not_anonymous")]
 pub async fn book_tokens( arg: BookTokensArg) -> Result<bool, String> {
     let   f  =  STATE.with_borrow( |f|  f.clone() );
     let qunatity =  arg.quantity.clone();
