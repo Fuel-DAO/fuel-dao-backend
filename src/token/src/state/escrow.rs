@@ -315,6 +315,129 @@ impl EscrowStore {
         })
     }
 
+    pub async fn refund_amount_from_escrow(
+        &self,
+        invester: &Principal,
+        ledger: Principal,
+        index: Principal,
+        amount: u64
+    ) -> Result<RefundResult, String> {
+        let icp_ledger_index = index;
+        let icp_ledger = ledger;
+
+        let escrow_subaccount: Subaccount = invester.into();
+        let escrow_account_id =
+            AccountIdentifier::from_principal(ic_cdk::id(), Some(escrow_subaccount));
+        // let args = index_canister::GetAccountTransactionsArgs {
+        //     account: Account {
+        //         owner: ic_cdk::id(),
+        //         subaccount: Some(escrow_subaccount.to_vec()),
+        //     },
+        //     start: None,
+        //     max_results: Nat::from(50u64),
+        // };
+
+        let index_query_result = index_canister::Service(icp_ledger_index)
+            .get_account_transactions(index_canister::GetAccountTransactionsArgs {
+                account: Account {
+                    owner: ic_cdk::id(),
+                    subaccount: Some(escrow_subaccount.to_vec()),
+                },
+                start: None,
+                max_results: Nat::from(50u64),
+            })
+            .await
+            .map_err(|(c, e)| {
+                format!("Failed to get account transactions canister error {c:?} {e} ",)
+            })?;
+
+
+        let index_query_result = match index_query_result.0 {
+            index_canister::GetAccountIdentifierTransactionsResult::Ok(get_transactions) => {
+                get_transactions
+            }
+            index_canister::GetAccountIdentifierTransactionsResult::Err(f) => {
+                return Err(format!(
+                    "Failed to get account transactions from index canister {}",
+                    f.message
+                ))
+            }
+        };
+
+        // Validate query result
+        let escrow_balance = index_query_result.balance;
+        
+        let txns = index_query_result.transactions.clone();
+        let refund_account_id = index_query_result
+            .transactions
+            .into_iter()
+            .filter_map(|txn| match txn.transaction.operation {
+                index_canister::Operation::Transfer {
+                    to,
+                    fee,
+                    from,
+                    amount,
+                    spender,
+                } => {
+                    if to == escrow_account_id.to_hex() {
+                        Some(from.to_string())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+
+        let refund_account_id = match refund_account_id.first() {
+            Some(account) => account.clone(),
+            None => {
+                return Result::Err(format!(
+                    "Txn: {refund_account_id:?} not found in index: {:?} for sent to : {:?}",
+                    txns,
+                    escrow_account_id.to_hex()
+                ))
+            }
+        };
+
+        // Calculate refund amount
+        const TRANSFER_FEE: u64 = 10_000;
+        let refund_amount = (escrow_balance).saturating_sub(TRANSFER_FEE);
+        if refund_amount < amount {
+            return  Err("Not enough amount for transaction fee".to_string()) ;
+        }
+
+        if refund_amount <= 0 {
+            return Result::Ok(RefundResult {
+                to: refund_account_id.into(),
+                amount: 0,
+            });
+        }
+
+        let refund_amount = amount;
+
+        let _result = transfer(
+            icp_ledger,
+            TransferArgs {
+                memo: Memo(0),
+                amount: Tokens::from_e8s(refund_amount),
+                fee: DEFAULT_FEE,
+                from_subaccount: Some(ic_ledger_types::Subaccount(escrow_subaccount.0)),
+                to: ic_ledger_types::AccountIdentifier::from_hex(&refund_account_id)?,
+                created_at_time: None,
+            },
+        )
+        .await
+        .map_err(|(c, e)| format!("Failed to call transfer: {c:?} {e} "))?
+        .map_err(|f| format!("Failed to transfer: {f} "))?;
+
+        Ok(RefundResult {
+            to: refund_account_id.into(),
+            amount: refund_amount,
+        })
+    }
+
     pub async fn transfer_from_escrow(
         icp_ledger: Principal,
         amount: u64,

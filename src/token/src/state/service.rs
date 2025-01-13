@@ -24,6 +24,13 @@ impl State {
         let account_identifier = AccountIdentifier::from_principal(principal, Some(subaccount));
         account_identifier.to_hex()
     }
+    pub fn genral_escrow_account(canister_id: Option<Principal>,subaccount: Principal,) -> String {
+        let principal = canister_id.unwrap_or(ic_cdk::api::id()) ;
+        let subaccount = Subaccount::from(&subaccount);
+
+        let account_identifier = AccountIdentifier::from_principal(principal, Some(subaccount));
+        account_identifier.to_hex()
+    }
 
     pub async fn canister_balance_in_icp(&self) -> Result<f64, String> {
         let metadata = self.get_metadata()?; // Assume this retrieves the Metadata struct
@@ -322,13 +329,14 @@ impl State {
         }
 
         let principal = ic_cdk::api::id();
-        let subaccount = Subaccount::from(&ic_cdk::caller());
+        let caller = ic_cdk::caller();
+        let subaccount = Subaccount::from(&caller);
 
         let account_identifier = AccountIdentifier::from_principal(principal, Some(subaccount));
 
         Ok(GetEscrowAccountRet {
             account: GetEscrowAccountRetAccount {
-                owner: principal,
+                owner: caller,
                 subaccount: subaccount.0,
             },
             account_id: account_identifier.to_hex(),
@@ -570,6 +578,18 @@ impl State {
         let metadata = self.metadata.clone().unwrap().metadata.clone();
         self.escrow
             .refund_from_escrow(&arg0, metadata.token, metadata.index)
+            .await?;
+        Ok(true)
+    }
+
+    pub async fn refund_icp_amount_after_sale_from_annonymous(&self, arg0: Principal, icp: f64) -> Result<bool, String> {
+        let ledger = self.get_metadata()?.token;
+        let index = self.get_metadata()?.index;
+        const TRANSFER_FEE: u64 = 10_000;
+
+        let amount_to_transfer = (icp * 1e8 ) as u64 ;
+        self.escrow
+            .refund_amount_from_escrow(&arg0, ledger, index, amount_to_transfer)
             .await?;
         Ok(true)
     }
