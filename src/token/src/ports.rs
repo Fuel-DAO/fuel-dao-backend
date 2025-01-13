@@ -65,6 +65,13 @@ pub async fn refund_excess_after_sale(invester: Principal) -> Result<bool, Strin
     f.refund_excess_after_sale(invester).await
 }
 
+#[update(guard = "check_collection_owner")]
+pub async fn refund_icp_amount_after_sale_from_annonymous( amount: f64 ) -> Result<bool, String> {
+    let    f  =  STATE.with( |f|  f.borrow().clone() );
+    let invester = Principal::anonymous();
+    f.refund_icp_amount_after_sale_from_annonymous(invester, amount).await
+}
+
 #[query]
 pub async fn get_booked_tokens( arg0: Option<Principal>) -> u128 {
     STATE.with( |f|  f.borrow().clone() )
@@ -103,7 +110,7 @@ pub fn icrc7_tokens_of(   account: Icrc7TokensOfArg,
 }
 
 
-#[query]
+#[query(guard = "check_not_anonymous")]
 pub async fn get_escrow_account() -> Result<GetEscrowAccountRet, String> {
     STATE.with( |f|  f.borrow().clone() )
     .get_escrow_account().await 
@@ -156,4 +163,9 @@ pub async fn update_sale_status(status: SaleStatus) -> SaleStatus {
 pub async fn get_total_booked_tokens() -> u128 {
     STATE.with( |f|  f.borrow().clone() )
     .get_total_booked_tokens().await 
+}
+
+#[query]
+pub async fn get_escrow_account_id_for_principal( canister_id: Option<Principal>,principal: Principal,) -> String {
+    State::genral_escrow_account(canister_id, principal)
 }

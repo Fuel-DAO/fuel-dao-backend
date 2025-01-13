@@ -175,6 +175,9 @@ service : (CanisterArgs) -> {
   change_ownership : (principal) -> (Result_2);
   get_booked_tokens : (opt principal) -> (nat) query;
   get_escrow_account : () -> (Result_3) query;
+  get_escrow_account_id_for_principal : (opt principal, principal) -> (
+      text,
+    ) query;
   get_excess_escrow_balance : () -> (Result_4) query;
   get_metadata : () -> (Result_5) query;
   get_participating_investors : () -> (vec principal) query;
@@ -210,6 +213,7 @@ service : (CanisterArgs) -> {
     );
   icrc7_tx_window : () -> (opt nat) query;
   refund_excess_after_sale : (principal) -> (Result);
+  refund_icp_amount_after_sale_from_annonymous : (float64) -> (Result);
   reject_sale : () -> (Result);
   trasfer_icp_to_investors : (float64) -> (Result_6);
   update_annonymous_investor : (principal) -> (Result_7);
