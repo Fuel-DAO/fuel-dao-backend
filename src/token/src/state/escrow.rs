@@ -403,7 +403,7 @@ impl EscrowStore {
 
         // Calculate refund amount
         const TRANSFER_FEE: u64 = 10_000;
-        let refund_amount = (escrow_balance).saturating_sub(TRANSFER_FEE);
+        let refund_amount = escrow_balance;
         if refund_amount < amount {
             return  Err("Not enough amount for transaction fee".to_string()) ;
         }
@@ -415,7 +415,54 @@ impl EscrowStore {
             });
         }
 
-        let refund_amount = amount;
+        let refund_amount = amount.saturating_sub(TRANSFER_FEE);
+
+        let _result = transfer(
+            icp_ledger,
+            TransferArgs {
+                memo: Memo(0),
+                amount: Tokens::from_e8s(refund_amount),
+                fee: DEFAULT_FEE,
+                from_subaccount: Some(ic_ledger_types::Subaccount(escrow_subaccount.0)),
+                to: ic_ledger_types::AccountIdentifier::from_hex(&refund_account_id)?,
+                created_at_time: None,
+            },
+        )
+        .await
+        .map_err(|(c, e)| format!("Failed to call transfer: {c:?} {e} "))?
+        .map_err(|f| format!("Failed to transfer: {f} "))?;
+
+        Ok(RefundResult {
+            to: refund_account_id.into(),
+            amount: refund_amount,
+        })
+    }
+
+    pub async fn transfer_amount_from_escrow_to_account_id(
+        &self,
+        escrow: &Principal,
+        ledger: Principal,
+        amount: u64,
+        to_account_id: String
+    ) -> Result<RefundResult, String> {
+        let icp_ledger = ledger;
+
+        let escrow_subaccount: Subaccount = escrow.into();
+
+        let escrow_balance = amount;
+        
+        let refund_account_id = to_account_id;
+
+        // Calculate refund amount
+        const TRANSFER_FEE: u64 = 10_000;
+        let refund_amount = (escrow_balance).saturating_sub(TRANSFER_FEE);
+
+        if refund_amount <= 0 {
+            return Result::Ok(RefundResult {
+                to: refund_account_id.into(),
+                amount: 0,
+            });
+        }
 
         let _result = transfer(
             icp_ledger,

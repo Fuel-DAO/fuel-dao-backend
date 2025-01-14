@@ -215,6 +215,9 @@ service : (CanisterArgs) -> {
   refund_excess_after_sale : (principal) -> (Result);
   refund_icp_amount_after_sale_from_annonymous : (float64) -> (Result);
   reject_sale : () -> (Result);
+  transfer_icp_amount_from_annonymous_to_investor : (float64, principal) -> (
+      Result,
+    );
   trasfer_icp_to_investors : (float64) -> (Result_6);
   update_annonymous_investor : (principal) -> (Result_7);
   update_metadata : (UpdateMetadataArgs) -> (Result_2);

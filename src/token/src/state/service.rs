@@ -594,6 +594,16 @@ impl State {
         Ok(true)
     }
 
+    pub async fn refund_icp_amount_from_annonymous_to_investor(&self, icp: f64,  invester: Principal,) -> Result<bool, String> {
+        let ledger = self.get_metadata()?.token;
+        let amount_to_transfer = (icp * 1e8 ) as u64 ;
+        let to_account_id = Self::genral_escrow_account(None, invester);
+        self.escrow
+            .transfer_amount_from_escrow_to_account_id(&Principal::anonymous(), ledger, amount_to_transfer, to_account_id)
+            .await?;
+        Ok(true)
+    }
+
     // Validate collection owner
     pub async fn reject_sale(&self) -> Result<bool, String> {
         // validations::check_collection_owner()?;
