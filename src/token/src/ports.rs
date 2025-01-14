@@ -72,6 +72,12 @@ pub async fn refund_icp_amount_after_sale_from_annonymous( amount: f64 ) -> Resu
     f.refund_icp_amount_after_sale_from_annonymous(invester, amount).await
 }
 
+#[update(guard = "check_collection_owner")]
+pub async fn transfer_icp_amount_from_annonymous_to_investor( amount: f64, invester: Principal ) -> Result<bool, String> {
+    let    f  =  STATE.with( |f|  f.borrow().clone() );
+    f.refund_icp_amount_from_annonymous_to_investor( amount, invester).await
+}
+
 #[query]
 pub async fn get_booked_tokens( arg0: Option<Principal>) -> u128 {
     STATE.with( |f|  f.borrow().clone() )
