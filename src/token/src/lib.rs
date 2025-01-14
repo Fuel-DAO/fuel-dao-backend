@@ -56,7 +56,7 @@ fn pre_upgrade() {
 }
 
 #[post_upgrade]
-fn post_upgrade(upgrade: CanisterArgs) {
+fn post_upgrade(_: CanisterArgs) {
     let state: Result<(State,), String> = storage::stable_restore();
     match state {
         Ok(state) => {

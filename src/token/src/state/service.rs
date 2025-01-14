@@ -1,22 +1,84 @@
 #![allow(dead_code, unused_imports)]
 
-use crate::{state::{icrc1, Owner}, validations, STATE};
+use crate::{
+    state::{icrc1, Owner},
+    validations, STATE,
+};
 
 use super::{
-    escrow::{EscrowStore, SaleStatus}, metadata::Metadata, models::*, subaccount::{AccountIdentifier, Subaccount}, State, TokenState
+    escrow::{EscrowStore, SaleStatus},
+    metadata::{self, Metadata},
+    models::*,
+    subaccount::{AccountIdentifier, Subaccount},
+    State, TokenState,
 };
 use candid::{self, CandidType, Decode, Deserialize, Encode, Nat, Principal};
 use ic_cdk::{api::call::CallResult, caller};
-use ic_ledger_types::{Memo,  Tokens, DEFAULT_SUBACCOUNT};
+use ic_ledger_types::{Memo, Tokens, DEFAULT_SUBACCOUNT};
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
 impl State {
+    pub fn canister_escrow_account() -> String {
+        let principal = ic_cdk::api::id();
+        let subaccount = Subaccount::from(&principal);
+
+        let account_identifier = AccountIdentifier::from_principal(principal, Some(subaccount));
+        account_identifier.to_hex()
+    }
+    pub fn genral_escrow_account(canister_id: Option<Principal>,subaccount: Principal,) -> String {
+        let principal = canister_id.unwrap_or(ic_cdk::api::id()) ;
+        let subaccount = Subaccount::from(&subaccount);
+
+        let account_identifier = AccountIdentifier::from_principal(principal, Some(subaccount));
+        account_identifier.to_hex()
+    }
+
+    pub async fn canister_balance_in_icp(&self) -> Result<f64, String> {
+        let metadata = self.get_metadata()?; // Assume this retrieves the Metadata struct
+
+        let icp_ledger = metadata.token;
+
+        let owner = ic_cdk::id();
+
+        let subaccount = Some(Subaccount::from(&owner).to_vec());
+
+        let escrow_balance = EscrowStore::icrc1_balance_of(
+            icp_ledger,
+            Icrc1Account {
+                owner,
+                subaccount,
+            },
+        )
+        .await?;
+        Ok((escrow_balance as f64) / 1e8 as f64)
+    }
+
+    pub async fn trasfer_icp_to_investors(&self, icp: f64) -> Result<String, String> {
+        let ledger = self.get_metadata()?.token;
+        let index = self.get_metadata()?.index;
+        const TRANSFER_FEE: u64 = 10_000;
+        let mut memo = 0u64;
+
+        let amount_to_transfer = ((icp * 1e8 / (self.tokens.tokens.len() as f64)) - (TRANSFER_FEE as f64)) as u64 ;
+
+        let from_principal = ic_cdk::id();
+
+        for ( _,investor) in self.tokens.tokens.iter() {
+
+            let transfer_to_account_id = EscrowStore::get_account_id_and_balance_of_who_sent_amout_to_escrow_for_invester(&investor.owner.principal, index ).await?.0;
+
+             memo = EscrowStore::transfer_from_escrow(ledger, amount_to_transfer, &from_principal, transfer_to_account_id, memo  ).await?;
+        }
+
+        Ok("Transfer successful".into())
+
+    }
+
     pub async fn accept_sale(&self) -> Result<bool, String> {
         // Check if the sale is live
         let escrow_store = self.escrow.clone();
         if escrow_store.sale_status != SaleStatus::Live {
             return Err("Sale not live.".to_string());
         }
-
 
         // Retrieve treasury, ledger, and booked tokens
         let metadata = self.metadata.clone().map(|f| f.metadata);
@@ -34,7 +96,7 @@ impl State {
             // Transfer funds to treasury
             const TRANSFER_FEE: u64 = 10_000;
 
-            let args  =TransferArg {
+            let args = TransferArg {
                 from_subaccount: Some(Subaccount::from(&investor.clone()).0),
                 to: Account {
                     owner: treasury,
@@ -61,7 +123,7 @@ impl State {
             // };
 
             // // let encoded_args = &args/*  Encode!(&args).expect("Failed to encode arguments") */;
-            
+
             // // let args = ic_ledger_types::TransferArgs {
             // //   memo: Memo(0),
             // //   amount: Tokens::from_e8s(user_invested_amount as u64),
@@ -82,28 +144,27 @@ impl State {
 
             // _transfer_result.map_err(|e| format!("Icrc1 Transfer failed {e:?}") )?;
 
-            
-            
-
             // Mint tokens for the investor
             for _ in 0..quantity.clone() {
-                STATE.with_borrow_mut(|f|{
-                    f.tokens.mint(
-                        *investor,
-                        Some(Subaccount::from(investor).to_vec()),
-                    );
+                STATE.with_borrow_mut(|f| {
+                    f.tokens
+                        .mint(*investor, Some(Subaccount::from(investor).to_vec()));
                     f.metadata.as_mut().map(|f| f.increment_supply());
-                } );
-                
+                });
             }
         }
 
-         // Accept the sale
+        // Accept the sale
         STATE.with_borrow_mut(|f| f.escrow.accept_sale());
 
         Ok(true)
     }
-    pub async fn accept_sale_individual_icrc1_transfer(invester: Principal, quantity: u128, metadata: Option<Metadata>, sale_status: SaleStatus ) -> Result<bool, String> {
+    pub async fn accept_sale_individual_icrc1_transfer(
+        invester: Principal,
+        quantity: u128,
+        metadata: Option<Metadata>,
+        sale_status: SaleStatus,
+    ) -> Result<bool, String> {
         // Check if the sale is live
         if sale_status != SaleStatus::Live {
             return Err("Sale not live.".to_string());
@@ -114,34 +175,32 @@ impl State {
         }
         let metadata = metadata.unwrap();
 
-            let price = metadata.price;
-            let ledger =  metadata.token;
-            let treasury  = metadata.treasury;
-            let user_invested_amount = quantity.clone() as u64 * (price) as u64;
-            // Transfer funds to treasury
-            const TRANSFER_FEE: u64 = 10_000;
+        let price = metadata.price;
+        let ledger = metadata.token;
+        let treasury = metadata.treasury;
+        let user_invested_amount = quantity.clone() as u64 * (price) as u64;
+        // Transfer funds to treasury
+        const TRANSFER_FEE: u64 = 10_000;
 
-            let args  =TransferArg {
-                from_subaccount: Some(Subaccount::from(&invester.clone()).0),
-                to: Account {
-                    owner: treasury,
-                    subaccount: None,
-                },
-                fee: Some(TRANSFER_FEE.into()),
-                created_at_time: None,
-                memo: None,
-                amount: user_invested_amount.into(),
-            };
+        let args = TransferArg {
+            from_subaccount: Some(Subaccount::from(&invester.clone()).0),
+            to: Account {
+                owner: treasury,
+                subaccount: None,
+            },
+            fee: Some(TRANSFER_FEE.into()),
+            created_at_time: None,
+            memo: None,
+            amount: user_invested_amount.into(),
+        };
 
-            let _ = icrc1::icrc1_transfer(ledger, args.clone()).await.map_err(|f| format!("Failed to do icrc1 transfer: {quantity} * {price} = {user_invested_amount} {f:?} {args:?}"))?;
+        let _ = icrc1::icrc1_transfer(ledger, args.clone()).await.map_err(|f| format!("Failed to do icrc1 transfer: {quantity} * {price} = {user_invested_amount} {f:?} {args:?}"))?;
 
         Ok(true)
     }
-    
 
     pub async fn get_excess_escrow_balance(&self) -> Result<Vec<Principal>, String> {
-
-        let metadata = self.get_metadata().await?; // Assume this retrieves the Metadata struct
+        let metadata = self.get_metadata()?; // Assume this retrieves the Metadata struct
 
         let escrow_store = self.escrow.clone(); // Assume this retrieves the EscrowStore instance
 
@@ -152,43 +211,38 @@ impl State {
         let mut excess = Vec::new();
 
         for principal in escrow_store.get_participating_investors() {
-
             let subaccount = Subaccount::from(&principal);
-        let icp_ledger = metadata.token;
+            let icp_ledger = metadata.token;
 
-        let escrow_balance = EscrowStore::icrc1_balance_of(
-            icp_ledger,
-            Icrc1Account {
-                owner: ic_cdk::id(),
-                subaccount: Some(subaccount.to_vec()),
-            },
-        )
-        .await?;
+            let escrow_balance = EscrowStore::icrc1_balance_of(
+                icp_ledger,
+                Icrc1Account {
+                    owner: ic_cdk::id(),
+                    subaccount: Some(subaccount.to_vec()),
+                },
+            )
+            .await?;
 
-        let total_invested_count = escrow_store
-            .get_booked_tokens()
-            .get(&principal)
-            .cloned()
-            .unwrap_or_else(|| 0);
+            let total_invested_count = escrow_store
+                .get_booked_tokens()
+                .get(&principal)
+                .cloned()
+                .unwrap_or_else(|| 0);
 
-        let total_cost = (total_invested_count ) as f64
-            * &(metadata.price);
+            let total_cost = (total_invested_count) as f64 * &(metadata.price);
 
-        if (escrow_balance as f64) > total_cost {
-            excess.push(principal);
-        }
-
+            if (escrow_balance as f64) > total_cost {
+                excess.push(principal);
+            }
         }
 
         Ok(excess)
-
-
     }
 
     /// Should not be anonymous
     pub async fn book_tokens(&self, arg: BookTokensArg) -> Result<bool, String> {
         let principal = caller();
-        let metadata = self.get_metadata().await?; // Assume this retrieves the Metadata struct
+        let metadata = self.get_metadata()?; // Assume this retrieves the Metadata struct
 
         let mut escrow_store = self.escrow.clone(); // Assume this retrieves the EscrowStore instance
 
@@ -199,8 +253,6 @@ impl State {
         if arg.quantity <= 0 {
             return Err("Quantity should be at least 1.".to_string());
         }
-
-        
 
         let subaccount = Subaccount::from(&principal);
         let icp_ledger = metadata.token;
@@ -220,8 +272,8 @@ impl State {
             .cloned()
             .unwrap_or_else(|| 0);
 
-        let total_cost = ((&total_invested_count + &(arg.quantity as u128)) as f64)
-            * &(metadata.price + 10_000.0);
+        let total_cost = (((&total_invested_count + &(arg.quantity as u128)) as f64)
+            * &(metadata.price))  + 10_000.0;
 
         if (escrow_balance as f64) < total_cost {
             return Err(format!("Invalid balance in escrow. Req quantity: {} Total invested: {total_invested_count} Current balanace: {escrow_balance}, total cost in e8s: {total_cost}", arg.quantity));
@@ -229,11 +281,11 @@ impl State {
 
         ic_cdk::println!("Escrow balance {escrow_balance}, cost {total_cost} ");
 
-        if &escrow_store.total_booked_tokens + &(arg.quantity as u128) > metadata.supply_cap {
+        if &escrow_store.get_total_booked_tokens() + &(arg.quantity as u128) > metadata.supply_cap {
             return Err("Supply cap reached.".to_string());
         }
 
-         escrow_store.book_tokens(principal, arg.quantity.into());
+        escrow_store.book_tokens(principal, arg.quantity.into());
 
         Ok(true)
     }
@@ -277,23 +329,21 @@ impl State {
         }
 
         let principal = ic_cdk::api::id();
-        let subaccount = Subaccount::from(&ic_cdk::caller());
+        let caller = ic_cdk::caller();
+        let subaccount = Subaccount::from(&caller);
 
-        let account_identifier = AccountIdentifier::from_principal(
-            principal,
-            Some(subaccount),
-        );
+        let account_identifier = AccountIdentifier::from_principal(principal, Some(subaccount));
 
         Ok(GetEscrowAccountRet {
             account: GetEscrowAccountRetAccount {
-                owner: principal,
+                owner: caller,
                 subaccount: subaccount.0,
             },
             account_id: account_identifier.to_hex(),
         })
     }
 
-    pub async fn get_metadata(&self) -> Result<GetMetadataRet, String> {
+    pub fn get_metadata(&self) -> Result<GetMetadataRet, String> {
         Ok(self
             .metadata
             .as_ref()
@@ -524,11 +574,33 @@ impl State {
     pub async fn icrc_7_tx_window(&self) -> CallResult<(Option<candid::Nat>,)> {
         ic_cdk::call(Principal::anonymous(), "icrc7_tx_window", ()).await
     }
-    pub async fn refund_excess_after_sale(
-        &self,
-        arg0: Principal,
-    ) -> Result<bool, String> {
-        self.escrow.refund_from_escrow(&arg0, self.metadata.clone().unwrap().metadata.clone() ).await?;
+    pub async fn refund_excess_after_sale(&self, arg0: Principal) -> Result<bool, String> {
+        let metadata = self.metadata.clone().unwrap().metadata.clone();
+        self.escrow
+            .refund_from_escrow(&arg0, metadata.token, metadata.index)
+            .await?;
+        Ok(true)
+    }
+
+    pub async fn refund_icp_amount_after_sale_from_annonymous(&self, arg0: Principal, icp: f64) -> Result<bool, String> {
+        let ledger = self.get_metadata()?.token;
+        let index = self.get_metadata()?.index;
+        const TRANSFER_FEE: u64 = 10_000;
+
+        let amount_to_transfer = (icp * 1e8 ) as u64 ;
+        self.escrow
+            .refund_amount_from_escrow(&arg0, ledger, index, amount_to_transfer)
+            .await?;
+        Ok(true)
+    }
+
+    pub async fn refund_icp_amount_from_annonymous_to_investor(&self, icp: f64,  invester: Principal,) -> Result<bool, String> {
+        let ledger = self.get_metadata()?.token;
+        let amount_to_transfer = (icp * 1e8 ) as u64 ;
+        let to_account_id = Self::genral_escrow_account(None, invester);
+        self.escrow
+            .transfer_amount_from_escrow_to_account_id(&Principal::anonymous(), ledger, amount_to_transfer, to_account_id)
+            .await?;
         Ok(true)
     }
 
@@ -541,14 +613,24 @@ impl State {
             return Result::Err("Sale not live.".to_string());
         }
 
+        let metadata = self.metadata.as_ref().unwrap().metadata.clone();
 
         // Process refunds for all booked tokens
         for (investor_principal, _) in self.escrow.booked_tokens.iter() {
-            match self.escrow.refund_from_escrow(investor_principal, self.metadata.as_ref().unwrap().metadata.clone()).await {
+            match self
+                .escrow
+                .refund_from_escrow(
+                    investor_principal,
+                    metadata.token, metadata.index
+                )
+                .await
+            {
                 Result::Err(err) => return Result::Err(err),
                 _ => {
-                STATE.with_borrow_mut(|f| f.escrow.reject_sale_update_invester_booked_tokens(investor_principal));
-
+                    STATE.with_borrow_mut(|f| {
+                        f.escrow
+                            .reject_sale_update_invester_booked_tokens(investor_principal)
+                    });
                 }
             }
         }
@@ -556,10 +638,8 @@ impl State {
         // Reject the sale
         STATE.with_borrow_mut(|F| F.escrow.reject_sale());
 
-
         Result::Ok(true)
     }
-
 
     // pub async fn reject_sale_individual(
     //     &self,

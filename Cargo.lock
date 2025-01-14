@@ -1091,8 +1091,10 @@ name = "provision"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "ciborium",
  "ic-cdk 0.16.0",
  "ic-cdk-macros 0.16.0",
+ "ic-stable-structures",
  "serde",
 ]
 

@@ -100,9 +100,9 @@ type RentalTransaction = record {
   car_id : nat64;
   booking_id : nat64;
 };
-type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : text; Err : text };
-type Result_2 = variant { Ok : RentalTransaction; Err : text };
+type Result = variant { Ok : RentalTransaction; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : text; Err : text };
 type TransactionHistory = record {
   end_timestamp : text;
   total_amount : float64;
@@ -114,13 +114,35 @@ type TransactionHistory = record {
   booking_id : nat64;
 };
 type TransmissionType = variant { Manual; Automatic };
+type UpdateCarDetails = record {
+  status : opt CarStatus;
+  model : opt text;
+  mileage : opt nat32;
+  make : opt text;
+  color : opt text;
+  year : opt nat32;
+  description : opt text;
+  current_price_per_day : opt float64;
+  default_image_url : opt text;
+  car_type : opt CarType;
+  pickup_location : opt Location;
+  dropoff_location : opt Location;
+  capacity : opt nat8;
+  fuel_type : opt FuelType;
+  price_per_day : opt float64;
+  transmission_type : opt TransmissionType;
+  images : opt vec text;
+};
 service : {
+  add_booking_for_a_car : (nat64, RentalTransaction, RazorpayPayment) -> (
+      Result,
+    );
   add_car : (CarDetails) -> (nat64);
-  add_controller : (principal) -> (Result);
+  add_controller : (principal) -> (Result_1);
   add_distance_travelled : (nat64, float64, opt text) -> ();
   all_bookings : () -> (vec vec record { nat64; RentalTransaction }) query;
   booking_details : (nat64, nat64) -> (opt TransactionHistory) query;
-  cancel_reservation : (nat64, nat64) -> (Result_1);
+  cancel_reservation : (nat64, nat64) -> (Result_2);
   car_stats : () -> (CarTravelStats) query;
   current_user_bookings : () -> (vec RentalTransaction) query;
   get_car_details : (nat64, nat64, nat64) -> (opt CarAvailability);
@@ -133,15 +155,16 @@ service : {
   greet : (text) -> (text) query;
   list_all_cars : () -> (vec Car);
   remove_car : (nat64) -> (opt Car);
-  remove_controller : (principal) -> (Result);
-  reserve_car : (nat64, RazorpayPayment) -> (Result_2);
+  remove_controller : (principal) -> (Result_1);
+  reserve_car : (nat64, RazorpayPayment) -> (Result);
   search_car : (nat64, nat64) -> (vec Car);
   update_car : (nat64, CarDetails) -> ();
+  update_car_details_by_id : (nat64, UpdateCarDetails) -> ();
   user_bookings : (principal) -> (vec TransactionHistory) query;
   validate_details_and_availaibility : (
       nat64,
       nat64,
       nat64,
       CustomerDetials,
-    ) -> (Result_2);
+    ) -> (Result);
 }

@@ -56,7 +56,7 @@ pub fn add_collection_request(collection: CollectionRequest) -> Result<u64, Stri
             .collection_requests
             .last_key_value()
             .map(|f| f.0)
-            .unwrap_or(&0)
+            .unwrap_or(0)
             + 1;
         state.collection_requests.insert(
             id,
@@ -75,7 +75,6 @@ pub fn get_request_info(id: u64) -> Option<CollectionRequest> {
         f.borrow()
             .collection_requests
             .get(&id)
-            .cloned()
             .map(|f| f.request)
     })
 }
@@ -87,7 +86,7 @@ pub fn get_pending_requests() -> Vec<u64> {
         state
             .collection_requests
             .iter()
-            .filter_map(|(&id, request_config)| {
+            .filter_map(|(id, request_config)| {
                 if request_config.config.is_pending() {
                     Some(id)
                 } else {
@@ -119,7 +118,7 @@ pub async fn delete_collection(request_id: u64) -> Result<bool, String> {
     // Step 2: Access the collection config
     let collection_config = STATE.with(|state| {
         let state = state.borrow();
-        state.collection_requests.get(&request_id).cloned()
+        state.collection_requests.get(&request_id)
     });
 
     if collection_config.is_none() {
@@ -189,7 +188,7 @@ pub fn list_collections() -> Vec<ListCollection> {
         state
             .collection_requests
             .iter()
-            .filter_map(|(&id, config)| {
+            .filter_map(|(id, config)| {
                 // Only include entries where `token_canister` is `Some`
                 if let Some(token_canister) = config.config.token_canister {
                     Some(ListCollection {
@@ -211,8 +210,8 @@ pub fn list_collections() -> Vec<ListCollection> {
 
 #[ic_cdk_macros::update(guard = "is_controller")]
 pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
-    let mut state = STATE.with(|f| f.borrow_mut().clone());
-    let collection = match state.collection_requests.get_mut(&id) {
+    let  collection = &mut  STATE.with_borrow_mut(|f| f.collection_requests.get(&id));
+    let collection = match collection {
         Some(c) => c,
         None => return Err("Invalid collection Request".into()),
     };
@@ -223,7 +222,7 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
 
     // let wasm = include_bytes!("../../../../wasm/asset/assetstorage.wasm.gz");
 
-     let wasm= match state.asset_wasm {
+     let wasm= match STATE.with(|f| f.borrow_mut().asset_wasm.clone()) {
         Some(wasm) =>wasm,
         None => return Err("Asset wasm not set".into()),
     } ;
@@ -236,9 +235,10 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     collection.config.asset_canister = Some(deploy_asset_result);
 
     STATE.with_borrow_mut(|f| {
-       match  f.collection_requests.get_mut(&id) {
-        Some(collection) => {
+       match  f.collection_requests.get(&id) {
+        Some(mut collection) => {
             collection.config.asset_canister = Some(deploy_asset_result);
+            f.collection_requests.insert(id,collection);
         },
         None => {}
        }
@@ -247,14 +247,15 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     // Step 3: Deploy the asset canister
     let asset_canister_id = deploy_asset_result;
 
-    let asset_proxy_canister = state
-        .asset_proxy_canister
+    let request = collection.request.clone();
+
+
+    let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
         .ok_or(String::from("Asset Proxy canister not set"))?;
 
-    // // Step 4: Grant proxy permissions ///TODO:// Use
+    // // // Step 4: Grant proxy permissions ///TODO:// Use
     grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
 
-    let request = collection.request.clone();
     // // Step 5: Prepare the files for approval
     let approved_files: Vec<String> = collection
         .request
@@ -275,7 +276,7 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     // // Step 7: Revoke proxy permissions
     revoke_asset_edit_perms(
         asset_canister_id,
-        state.asset_proxy_canister.unwrap_or(Principal::anonymous()),
+        asset_proxy_canister,
     )
     .await?;
 
@@ -295,7 +296,7 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     }
 
     // let wasm = include_bytes!("../../../../wasm/token/token.wasm.gz").to_vec();
-    let wasm= match state.token_wasm     {
+    let wasm= match STATE.with_borrow(|f|f.token_wasm.clone() )     {
         Some(wasm) =>wasm,
         None => return Err("Token wasm not set".into()),
     } ;
@@ -310,9 +311,10 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     collection.config.token_canister = Some(token_canister_id);
 
     STATE.with_borrow_mut(|f| {
-        match  f.collection_requests.get_mut(&id) {
-         Some(collection) => {
+        match   f.collection_requests.get(&id) {
+         Some(mut collection) => {
              collection.config.token_canister = Some(token_canister_id);
+             f.collection_requests.insert(id, collection);
          },
          None => {}
         }
@@ -328,13 +330,140 @@ pub async fn approve_request(id: u64) -> Result<ListCollection, String> {
     //     .map_err(|err| ApproveError::GrantPermissionsError(err))?;
 
     STATE.with_borrow_mut(|f| {
-        let request = f.collection_requests.get_mut(&id);
-        if let Some(req) = request {
+        if let Some(mut req) =  f.collection_requests.get(&id) {
             req.config.approval_status = ConfigStatus::Approved;
             req.config.asset_canister = Some(asset_canister_id);
             req.config.token_canister = Some(token_canister_id);
+            f.collection_requests.insert(id, req);
         }
     });
+
+    // // Step 11: Return the success response
+    Ok(ListCollection {
+        id,
+        asset_canister: asset_canister_id,
+        token_canister: token_canister_id,
+    })
+}
+
+
+#[ic_cdk_macros::update(guard = "is_controller")]
+pub async fn approve_assets_for_a_collection_and_admin_as_token_for_depoyed(id: u64) -> Result<ListCollection, String> {
+    let  collection = &mut  STATE.with_borrow_mut(|f| f.collection_requests.get(&id));
+    let collection = match collection {
+        Some(c) => c,
+        None => return Err("Invalid collection Request".into()),
+    };
+
+    let deploy_asset_result = match collection.config.asset_canister {
+        Some(p) => p,
+        None => return  Err("Asset canister is not deployed for this listing".into()),
+    };
+
+    collection.config.asset_canister = Some(deploy_asset_result);
+
+    STATE.with_borrow_mut(|f| {
+       match  f.collection_requests.get(&id) {
+        Some(mut collection) => {
+            collection.config.asset_canister = Some(deploy_asset_result);
+            f.collection_requests.insert(id,collection);
+        },
+        None => {}
+       }
+    });
+
+    let asset_canister_id = deploy_asset_result;
+
+    let request = collection.request.clone();
+
+
+    let asset_proxy_canister = STATE.with(|f|f.borrow().asset_proxy_canister)
+        .ok_or(String::from("Asset Proxy canister not set"))?;
+
+    // // // Step 4: Grant proxy permissions ///TODO:// Use
+    grant_asset_edit_perms(asset_canister_id, asset_proxy_canister).await?;
+
+    // // Step 5: Prepare the files for approval
+    let approved_files: Vec<String> = collection
+        .request
+        .documents
+        .iter()
+        .map(|doc| doc.1.clone())
+        .chain(collection.request.images.clone())
+        .chain(if !&request.logo.is_empty() {
+            vec![request.logo.clone()]
+        } else {
+            vec![]
+        })
+        .collect();
+
+    // // Step 6: TODO:// Approve the files
+    approve_files_from_proxy(asset_canister_id, approved_files, asset_proxy_canister).await?;
+
+    // // Step 7: Revoke proxy permissions
+    revoke_asset_edit_perms(
+        asset_canister_id,
+        asset_proxy_canister,
+    )
+    .await?;
+
+    // // Step 8: Deploy the token canister
+    let collection_owner = collection.config.collection_owner.clone();
+    let asset_canister = asset_canister_id;
+    let mut token_metadata = request
+        .clone()
+        .into_metadata(collection_owner, asset_canister);
+
+    if !request.logo.is_empty() {
+        token_metadata.logo = format!(
+            "https://{}.icp0.io{}",
+            asset_canister_id.to_string(),
+            request.logo
+        );
+    }
+
+    // let wasm = include_bytes!("../../../../wasm/token/token.wasm.gz").to_vec();
+    // let wasm= match STATE.with_borrow(|f|f.token_wasm.clone() )     {
+    //     Some(wasm) =>wasm,
+    //     None => return Err("Token wasm not set".into()),
+    // } ;
+
+    let deploy_token_result = match collection.config.token_canister {
+        Some(p) => p,
+        None => return  Err("Token canister is not yet deployed".into()),
+    };
+
+    let token_canister_id = deploy_token_result;
+
+    collection.config.token_canister = Some(token_canister_id);
+
+    // STATE.with_borrow_mut(|f| {
+    //     match   f.collection_requests.get(&id) {
+    //      Some(mut collection) => {
+    //          collection.config.token_canister = Some(token_canister_id);
+    //          f.collection_requests.insert(id, collection);
+    //      },
+    //      None => {}
+    //     }
+    //  });
+
+    // collection.config.approval_status = ConfigStatus::Approved;
+
+    // // Step 9: Grant admin and edit permissions
+    let _ = grant_asset_admin_perms(asset_canister_id, token_canister_id).await?;
+    //     .map_err(|err| ApproveError::GrantPermissionsError(err))?;
+
+    grant_asset_edit_perms(asset_canister_id, collection_owner.clone()).await?;
+    //     .map_err(|err| ApproveError::GrantPermissionsError(err))?;
+
+    // STATE.with_borrow_mut(|f| {
+    //     if let Some(mut req) =  f.collection_requests.get(&id) {
+    //         req.config.approval_status = ConfigStatus::Approved;
+    //         req.config.asset_canister = Some(asset_canister_id);
+    //         req.config.token_canister = Some(token_canister_id);
+    //         f.collection_requests.insert(id, req);
+    //     }
+    // });
 
     // // Step 11: Return the success response
     Ok(ListCollection {

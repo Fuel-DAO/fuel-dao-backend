@@ -1,13 +1,20 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_cdk::api::call::call;
+use ic_ledger_types::{transfer, Timestamp, TransferArgs};
 use ic_ledger_types::{Memo, Tokens, DEFAULT_FEE};
 use serde::Serialize;
 use std::collections::HashMap;
-use ic_ledger_types::{transfer, TransferArgs};
+use std::mem;
 
-use crate::{state::{index_canister::{self, Account}, subaccount::{AccountIdentifier, Subaccount}}, Icrc1Account};
+use crate::{
+    state::{
+        index_canister::{self, Account},
+        subaccount::{AccountIdentifier, Subaccount},
+    },
+    Icrc1Account,
+};
 
-use super::metadata::Metadata;
+use super::{index_canister::GetAccountIdentifierTransactionsResponse, metadata::Metadata};
 
 /// Sale Status Enum
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -57,15 +64,28 @@ impl EscrowStore {
 
     /// Get the total number of booked tokens
     pub fn get_total_booked_tokens(&self) -> u128 {
-        self.total_booked_tokens
+        self.booked_tokens.iter().map(|f| f.1).sum()
     }
 
     /// Book tokens for a specific owner
     pub fn book_tokens(&mut self, owner: Principal, quantity: u128) {
         let owner_key = owner.clone();
         let current_amount = self.booked_tokens.get(&owner_key).cloned().unwrap_or(0);
-        self.booked_tokens.insert(owner_key, current_amount + quantity);
+        self.booked_tokens
+            .insert(owner_key, current_amount + quantity);
         self.total_booked_tokens += quantity;
+    }
+
+    pub fn update_annonymous_investor(&mut self, owner: Principal) {
+        match  self.booked_tokens.get(&Principal::anonymous()) {
+            Some(quantity) => {
+                self.book_tokens(owner, *quantity);
+                self.booked_tokens.remove_entry(&Principal::anonymous());
+            }, 
+            None => {
+
+            } 
+        };
     }
 
     /// Accept the sale
@@ -85,146 +105,429 @@ impl EscrowStore {
 
     pub fn reject_sale_update_invester_booked_tokens(&mut self, invester: &Principal) {
         self.sale_status = SaleStatus::Rejected;
-        if let Some(x) =  self.booked_tokens.get_mut(invester) {
+        if let Some(x) = self.booked_tokens.get_mut(invester) {
             *x = 0;
         }
-       
     }
 
-    pub async fn icrc1_balance_of( token_ledger_canister_principal: Principal ,arg: Icrc1Account) -> Result<u128, String> {
+    pub async fn icrc1_balance_of(
+        token_ledger_canister_principal: Principal,
+        arg: Icrc1Account,
+    ) -> Result<u128, String> {
+        let response = call(token_ledger_canister_principal, "icrc1_balance_of", (arg,)).await;
 
-        ic_cdk::println!("Balance args: {} {arg:?}", arg.owner.to_text());
+        match response {
+            Ok((bal,)) => Ok(bal),
+            Err((e, err_msg)) => Err(format!("Failed to grant permission: {e:?} {}", err_msg)),
+        }
+    }
 
-        let response = call(token_ledger_canister_principal, "icrc1_balance_of", (arg, )).await;
-        
-            match response {
-                Ok((bal, )) => Ok(bal),
-                Err((e, err_msg)) => Err(format!("Failed to grant permission: {e:?} {}", err_msg)),
+    pub async fn get_account_transactions_of_invetor(
+        invester: &Principal,
+        icp_ledger_index: Principal,
+    ) -> Result<GetAccountIdentifierTransactionsResponse, String> {
+        let escrow_subaccount: Subaccount = invester.into();
+        let index_query_result = index_canister::Service(icp_ledger_index)
+            .get_account_transactions(index_canister::GetAccountTransactionsArgs {
+                account: Account {
+                    owner: ic_cdk::id(),
+                    subaccount: Some(escrow_subaccount.to_vec()),
+                },
+                start: None,
+                max_results: Nat::from(50u64),
+            })
+            .await
+            .map_err(|(c, e)| {
+                format!("Failed to get account transactions canister error {c:?} {e} ",)
+            })?;
+
+        match index_query_result.0 {
+            index_canister::GetAccountIdentifierTransactionsResult::Ok(get_transactions) => {
+                Ok(get_transactions)
             }
+            index_canister::GetAccountIdentifierTransactionsResult::Err(f) => Err(format!(
+                "Failed to get account transactions from index canister {}",
+                f.message
+            )),
+        }
     }
 
-    pub async fn refund_from_escrow(&self, invester: &Principal, metadata: Metadata) -> Result<RefundResult, String> {
-        let icp_ledger_index = metadata.index;
-    let icp_ledger = metadata.token;
+    pub async fn get_account_id_and_balance_of_who_sent_amout_to_escrow_for_invester(
+        invester: &Principal,
+        icp_ledger_index: Principal,
+    ) -> Result<(String, u64), String> {
+        let escrow_subaccount: Subaccount = invester.into();
+        let escrow_account_id =
+            AccountIdentifier::from_principal(ic_cdk::id(), Some(escrow_subaccount));
 
-    let escrow_subaccount: Subaccount = invester.into();
-    let escrow_account_id = AccountIdentifier::from_principal(ic_cdk::id(), Some(escrow_subaccount));
-    // let args = index_canister::GetAccountTransactionsArgs {
-    //     account: Account {
-    //         owner: ic_cdk::id(),
-    //         subaccount: Some(escrow_subaccount.to_vec()),
-    //     },
-    //     start: None,
-    //     max_results: Nat::from(50u64),
-    // };
+        let index_query_result =
+            Self::get_account_transactions_of_invetor(invester, icp_ledger_index).await?;
 
-   
-    let index_query_result = index_canister::Service(icp_ledger_index).get_account_transactions(index_canister::GetAccountTransactionsArgs {
-        account: Account {
-            owner: ic_cdk::id(),
-            subaccount: Some(escrow_subaccount.to_vec()),
-        },
-        start: None,
-        max_results: Nat::from(50u64),
-    }).await.map_err(|(c,e)| format!("Failed to get account transactions canister error {c:?} {e} ", ))?;
-
-    // Query transactions
-    // let (index_query_result,): (Result<GetTransactions, GetTransactionsError>, ) = call(icp_ledger_index, "get_account_transactions", (&GetAccountTransactionsArgs {
-    //     account: Icrc1Account {
-    //         owner: ic_cdk::id(),
-    //         subaccount: Some(escrow_subaccount.to_vec()),
-    //     },
-    //     start: None,
-    //     max_results: Nat::from(5u64),
-    // }, )).await.map_err(|(c,e)| format!("Failed to get account transactions: {c:?} {e} "))?;
-
-    let index_query_result = match  index_query_result.0 {
-        index_canister::GetAccountIdentifierTransactionsResult::Ok(get_transactions) => get_transactions,
-        index_canister::GetAccountIdentifierTransactionsResult::Err(f) => return  Err(format!("Failed to get account transactions from index canister {}", f.message)),
-    };
-
-    // Validate query result
-    let escrow_balance = index_query_result.balance;
-    let txns = index_query_result.transactions.clone();
-    let refund_account_id = index_query_result
-        .transactions
-        .into_iter()
-        .filter_map(|txn|{ match txn.transaction.operation {
-            index_canister::Operation::Transfer { to, fee, from, amount, spender }   => {
-                if to == escrow_account_id.to_hex()  {
-                    Some(from.to_string())
-                } else {
-                    None
+        // Validate query result
+        let escrow_balance = index_query_result.balance;
+        let txns = index_query_result.transactions.clone();
+        let refund_account_id = index_query_result
+            .transactions
+            .into_iter()
+            .filter_map(|txn| match txn.transaction.operation {
+                index_canister::Operation::Transfer {
+                    to,
+                    fee,
+                    from,
+                    amount,
+                    spender,
+                } => {
+                    if to == escrow_account_id.to_hex() {
+                        Some(from.to_string())
+                    } else {
+                        None
+                    }
                 }
-            },
-            _ => None
-        }})
-        .collect::<Vec<_>>();
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let refund_account_id = match refund_account_id.first() {
+            Some(account) => account.clone(),
+            None => {
+                return Result::Err(format!(
+                    "Txn: {refund_account_id:?} not found in index: {:?} for sent to : {:?}",
+                    txns,
+                    escrow_account_id.to_hex()
+                ))
+            }
+        };
 
-    // let refund_account_id = transactions
-    //     .iter()
-    //     .find(|txn| match txn.transaction.operation {
-    //         index_canister::Operation::Transfer{ to, fee, from, amount, spender } => 
-            
-    //     } as Operation::Trabsfer  AccountIdentifier::from_principal(txn.transaction.to.owner, txn.to.subaccount.clone().map(|f| Subaccount::try_from(f.as_slice()).ok()).flatten())  == escrow_account_id)
-    //     .map(|txn| txn.from.clone());
-    
-
-    let refund_account_id = match refund_account_id.first() {
-        Some(account)  => account.clone(),
-        None => return Result::Err(format!("Txn: {refund_account_id:?} not found in index: {:?} for sent to : {:?}",txns,  escrow_account_id.to_hex())),
-    };
-
-    // Calculate refund amount
-    const TRANSFER_FEE: u64 = 10_000;
-    let refund_amount = (escrow_balance).saturating_sub(TRANSFER_FEE);
-    if refund_amount == 0 {
-        return Result::Ok(RefundResult {
-            to: refund_account_id.into(),
-            amount: 0,
-        });
+        Ok((refund_account_id, escrow_balance))
     }
 
-    // Transfer funds   
+    pub async fn refund_from_escrow(
+        &self,
+        invester: &Principal,
+        ledger: Principal,
+        index: Principal,
+    ) -> Result<RefundResult, String> {
+        let icp_ledger_index = index;
+        let icp_ledger = ledger;
+
+        let escrow_subaccount: Subaccount = invester.into();
+        let escrow_account_id =
+            AccountIdentifier::from_principal(ic_cdk::id(), Some(escrow_subaccount));
+        // let args = index_canister::GetAccountTransactionsArgs {
+        //     account: Account {
+        //         owner: ic_cdk::id(),
+        //         subaccount: Some(escrow_subaccount.to_vec()),
+        //     },
+        //     start: None,
+        //     max_results: Nat::from(50u64),
+        // };
+
+        let index_query_result = index_canister::Service(icp_ledger_index)
+            .get_account_transactions(index_canister::GetAccountTransactionsArgs {
+                account: Account {
+                    owner: ic_cdk::id(),
+                    subaccount: Some(escrow_subaccount.to_vec()),
+                },
+                start: None,
+                max_results: Nat::from(50u64),
+            })
+            .await
+            .map_err(|(c, e)| {
+                format!("Failed to get account transactions canister error {c:?} {e} ",)
+            })?;
 
 
-             let _result =   transfer(icp_ledger, TransferArgs { memo: Memo(0), amount: Tokens::from_e8s(refund_amount), fee:DEFAULT_FEE, from_subaccount: Some(ic_ledger_types::Subaccount(escrow_subaccount.0)), to: ic_ledger_types::AccountIdentifier::from_hex(&refund_account_id)?, created_at_time: None }).await.map_err(|(c,e)| format!("Failed to call transfer: {c:?} {e} "))?.map_err(|f| format!("Failed to transfer: {f} "))?;
+        let index_query_result = match index_query_result.0 {
+            index_canister::GetAccountIdentifierTransactionsResult::Ok(get_transactions) => {
+                get_transactions
+            }
+            index_canister::GetAccountIdentifierTransactionsResult::Err(f) => {
+                return Err(format!(
+                    "Failed to get account transactions from index canister {}",
+                    f.message
+                ))
+            }
+        };
+
+        // Validate query result
+        let escrow_balance = index_query_result.balance;
+        let txns = index_query_result.transactions.clone();
+        let refund_account_id = index_query_result
+            .transactions
+            .into_iter()
+            .filter_map(|txn| match txn.transaction.operation {
+                index_canister::Operation::Transfer {
+                    to,
+                    fee,
+                    from,
+                    amount,
+                    spender,
+                } => {
+                    if to == escrow_account_id.to_hex() {
+                        Some(from.to_string())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
 
 
-    // let _ : (Result<u64, TransferError1>,) = call(icp_ledger, "transfer", (GetAccountTransactionsArgs {
-    //     account: Icrc1Account {
-    //         owner: ic_cdk::id(),
-    //         subaccount: Some(escrow_subaccount.to_vec()),
-    //     },
-    //     start: None,
-    //     max_results: Nat::from(5 as u64),
-    // }, )).await.map_err(|(c,e)| format!("Failed to transfer: {c:?} {e} "))?;
+        let refund_account_id = match refund_account_id.first() {
+            Some(account) => account.clone(),
+            None => {
+                return Result::Err(format!(
+                    "Txn: {refund_account_id:?} not found in index: {:?} for sent to : {:?}",
+                    txns,
+                    escrow_account_id.to_hex()
+                ))
+            }
+        };
+
+        // Calculate refund amount
+        const TRANSFER_FEE: u64 = 10_000;
+        let refund_amount = (escrow_balance).saturating_sub(TRANSFER_FEE);
+        if refund_amount == 0 {
+            return Result::Ok(RefundResult {
+                to: refund_account_id.into(),
+                amount: 0,
+            });
+        }
+
+        let _result = transfer(
+            icp_ledger,
+            TransferArgs {
+                memo: Memo(0),
+                amount: Tokens::from_e8s(refund_amount),
+                fee: DEFAULT_FEE,
+                from_subaccount: Some(ic_ledger_types::Subaccount(escrow_subaccount.0)),
+                to: ic_ledger_types::AccountIdentifier::from_hex(&refund_account_id)?,
+                created_at_time: None,
+            },
+        )
+        .await
+        .map_err(|(c, e)| format!("Failed to call transfer: {c:?} {e} "))?
+        .map_err(|f| format!("Failed to transfer: {f} "))?;
+
+        Ok(RefundResult {
+            to: refund_account_id.into(),
+            amount: refund_amount,
+        })
+    }
+
+    pub async fn refund_amount_from_escrow(
+        &self,
+        invester: &Principal,
+        ledger: Principal,
+        index: Principal,
+        amount: u64
+    ) -> Result<RefundResult, String> {
+        let icp_ledger_index = index;
+        let icp_ledger = ledger;
+
+        let escrow_subaccount: Subaccount = invester.into();
+        let escrow_account_id =
+            AccountIdentifier::from_principal(ic_cdk::id(), Some(escrow_subaccount));
+        // let args = index_canister::GetAccountTransactionsArgs {
+        //     account: Account {
+        //         owner: ic_cdk::id(),
+        //         subaccount: Some(escrow_subaccount.to_vec()),
+        //     },
+        //     start: None,
+        //     max_results: Nat::from(50u64),
+        // };
+
+        let index_query_result = index_canister::Service(icp_ledger_index)
+            .get_account_transactions(index_canister::GetAccountTransactionsArgs {
+                account: Account {
+                    owner: ic_cdk::id(),
+                    subaccount: Some(escrow_subaccount.to_vec()),
+                },
+                start: None,
+                max_results: Nat::from(50u64),
+            })
+            .await
+            .map_err(|(c, e)| {
+                format!("Failed to get account transactions canister error {c:?} {e} ",)
+            })?;
 
 
-    Ok(RefundResult {
-        to: refund_account_id.into(),
-        amount: refund_amount,
-    })
-       
+        let index_query_result = match index_query_result.0 {
+            index_canister::GetAccountIdentifierTransactionsResult::Ok(get_transactions) => {
+                get_transactions
+            }
+            index_canister::GetAccountIdentifierTransactionsResult::Err(f) => {
+                return Err(format!(
+                    "Failed to get account transactions from index canister {}",
+                    f.message
+                ))
+            }
+        };
+
+        // Validate query result
+        let escrow_balance = index_query_result.balance;
+        
+        let txns = index_query_result.transactions.clone();
+        let refund_account_id = index_query_result
+            .transactions
+            .into_iter()
+            .filter_map(|txn| match txn.transaction.operation {
+                index_canister::Operation::Transfer {
+                    to,
+                    fee,
+                    from,
+                    amount,
+                    spender,
+                } => {
+                    if to == escrow_account_id.to_hex() {
+                        Some(from.to_string())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+
+        let refund_account_id = match refund_account_id.first() {
+            Some(account) => account.clone(),
+            None => {
+                return Result::Err(format!(
+                    "Txn: {refund_account_id:?} not found in index: {:?} for sent to : {:?}",
+                    txns,
+                    escrow_account_id.to_hex()
+                ))
+            }
+        };
+
+        // Calculate refund amount
+        const TRANSFER_FEE: u64 = 10_000;
+        let refund_amount = escrow_balance;
+        if refund_amount < amount {
+            return  Err("Not enough amount for transaction fee".to_string()) ;
+        }
+
+        if refund_amount <= 0 {
+            return Result::Ok(RefundResult {
+                to: refund_account_id.into(),
+                amount: 0,
+            });
+        }
+
+        let refund_amount = amount.saturating_sub(TRANSFER_FEE);
+
+        let _result = transfer(
+            icp_ledger,
+            TransferArgs {
+                memo: Memo(0),
+                amount: Tokens::from_e8s(refund_amount),
+                fee: DEFAULT_FEE,
+                from_subaccount: Some(ic_ledger_types::Subaccount(escrow_subaccount.0)),
+                to: ic_ledger_types::AccountIdentifier::from_hex(&refund_account_id)?,
+                created_at_time: None,
+            },
+        )
+        .await
+        .map_err(|(c, e)| format!("Failed to call transfer: {c:?} {e} "))?
+        .map_err(|f| format!("Failed to transfer: {f} "))?;
+
+        Ok(RefundResult {
+            to: refund_account_id.into(),
+            amount: refund_amount,
+        })
+    }
+
+    pub async fn transfer_amount_from_escrow_to_account_id(
+        &self,
+        escrow: &Principal,
+        ledger: Principal,
+        amount: u64,
+        to_account_id: String
+    ) -> Result<RefundResult, String> {
+        let icp_ledger = ledger;
+
+        let escrow_subaccount: Subaccount = escrow.into();
+
+        let escrow_balance = amount;
+        
+        let refund_account_id = to_account_id;
+
+        // Calculate refund amount
+        const TRANSFER_FEE: u64 = 10_000;
+        let refund_amount = (escrow_balance).saturating_sub(TRANSFER_FEE);
+
+        if refund_amount <= 0 {
+            return Result::Ok(RefundResult {
+                to: refund_account_id.into(),
+                amount: 0,
+            });
+        }
+
+        let _result = transfer(
+            icp_ledger,
+            TransferArgs {
+                memo: Memo(0),
+                amount: Tokens::from_e8s(refund_amount),
+                fee: DEFAULT_FEE,
+                from_subaccount: Some(ic_ledger_types::Subaccount(escrow_subaccount.0)),
+                to: ic_ledger_types::AccountIdentifier::from_hex(&refund_account_id)?,
+                created_at_time: None,
+            },
+        )
+        .await
+        .map_err(|(c, e)| format!("Failed to call transfer: {c:?} {e} "))?
+        .map_err(|f| format!("Failed to transfer: {f} "))?;
+
+        Ok(RefundResult {
+            to: refund_account_id.into(),
+            amount: refund_amount,
+        })
+    }
+
+    pub async fn transfer_from_escrow(
+        icp_ledger: Principal,
+        amount: u64,
+        from_principal: &Principal,
+        to_account_id: String,
+        memo: u64,
+    ) -> Result<u64, String> {
+        let from_subaccount: Subaccount = from_principal.into();
+        let transfer_args = TransferArgs {
+            memo: Memo(memo),
+            amount: Tokens::from_e8s(amount),
+            fee: DEFAULT_FEE,
+            from_subaccount: Some(ic_ledger_types::Subaccount(from_subaccount.0)),
+            to: ic_ledger_types::AccountIdentifier::from_hex(&to_account_id)?,
+            created_at_time: None,
+        };
+        let _result = transfer(
+            icp_ledger,
+            transfer_args.clone(),
+        )
+        .await
+        .map_err(|(c, e)| format!("Failed to call transfer: {c:?} {e} "))?
+        .map_err(|f| format!("Failed to transfer: {transfer_args:?} {f} "))?;
+        Ok(_result)
     }
 }
 
 #[derive(CandidType, Deserialize)]
 pub enum TransferError1 {
-  TxTooOld{ allowed_window_nanos: u64 },
-  BadFee{ expected_fee: Tokens },
-  TxDuplicate{ duplicate_of: u64 },
-  TxCreatedInFuture,
-  InsufficientFunds{ balance: u64 },
+    TxTooOld { allowed_window_nanos: u64 },
+    BadFee { expected_fee: Tokens },
+    TxDuplicate { duplicate_of: u64 },
+    TxCreatedInFuture,
+    InsufficientFunds { balance: u64 },
 }
 
-#[derive(CandidType, Deserialize,)]
+#[derive(CandidType, Deserialize)]
 pub struct RefundResult {
     pub to: String,
     pub amount: u64,
 }
 
-#[derive( Clone, CandidType, Deserialize)]
+#[derive(Clone, CandidType, Deserialize)]
 struct GetAccountTransactionsArgs {
     account: Icrc1Account,
     start: Option<Nat>,
@@ -233,68 +536,68 @@ struct GetAccountTransactionsArgs {
 
 #[derive(CandidType, Deserialize)]
 pub struct GetTransactions {
-  pub balance: u64,
-  pub transactions: Vec<TransactionWithId>,
-  pub oldest_tx_id: Option<u64>,
+    pub balance: u64,
+    pub transactions: Vec<TransactionWithId>,
+    pub oldest_tx_id: Option<u64>,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct GetTransactionsError {
-  pub message : String,
+    pub message: String,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct TransactionWithId {
-  pub id: u64,
-  pub transaction: Transaction,
+    pub id: u64,
+    pub transaction: Transaction,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Transaction {
-  pub burn: Option<Burn>,
-  pub kind: String,
-  pub mint: Option<Mint>,
-  pub approve: Option<Approve>,
-  pub timestamp: u64,
-  pub transfer: Option<Transfer>,
+    pub burn: Option<Burn>,
+    pub kind: String,
+    pub mint: Option<Mint>,
+    pub approve: Option<Approve>,
+    pub timestamp: u64,
+    pub transfer: Option<Transfer>,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Burn {
-  pub from: Icrc1Account,
-  pub memo: Option<serde_bytes::ByteBuf>,
-  pub created_at_time: Option<u64>,
-  pub amount: candid::Nat,
-  pub spender: Option<Icrc1Account>,
+    pub from: Icrc1Account,
+    pub memo: Option<serde_bytes::ByteBuf>,
+    pub created_at_time: Option<u64>,
+    pub amount: candid::Nat,
+    pub spender: Option<Icrc1Account>,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Mint {
-  pub to: Icrc1Account,
-  pub memo: Option<serde_bytes::ByteBuf>,
-  pub created_at_time: Option<u64>,
-  pub amount: candid::Nat,
+    pub to: Icrc1Account,
+    pub memo: Option<serde_bytes::ByteBuf>,
+    pub created_at_time: Option<u64>,
+    pub amount: candid::Nat,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Approve {
-  pub fee: Option<candid::Nat>,
-  pub from: Icrc1Account,
-  pub memo: Option<serde_bytes::ByteBuf>,
-  pub created_at_time: Option<u64>,
-  pub amount: candid::Nat,
-  pub expected_allowance: Option<candid::Nat>,
-  pub expires_at: Option<u64>,
-  pub spender: Icrc1Account,
+    pub fee: Option<candid::Nat>,
+    pub from: Icrc1Account,
+    pub memo: Option<serde_bytes::ByteBuf>,
+    pub created_at_time: Option<u64>,
+    pub amount: candid::Nat,
+    pub expected_allowance: Option<candid::Nat>,
+    pub expires_at: Option<u64>,
+    pub spender: Icrc1Account,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Transfer {
-  pub to: Icrc1Account,
-  pub fee: Option<candid::Nat>,
-  pub from: Icrc1Account,
-  pub memo: Option<serde_bytes::ByteBuf>,
-  pub created_at_time: Option<u64>,
-  pub amount: candid::Nat,
-  pub spender: Option<Icrc1Account>,
+    pub to: Icrc1Account,
+    pub fee: Option<candid::Nat>,
+    pub from: Icrc1Account,
+    pub memo: Option<serde_bytes::ByteBuf>,
+    pub created_at_time: Option<u64>,
+    pub amount: candid::Nat,
+    pub spender: Option<Icrc1Account>,
 }

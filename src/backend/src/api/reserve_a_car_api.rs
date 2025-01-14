@@ -60,19 +60,51 @@ async fn reserve_car(
 
     booking.payment_status = PaymentStatus::Paid { payment };
 
-    let transaction = STATE.with(|state| {
-        let  car_state = &mut state.borrow_mut().cars.get(&car_id);
-        // Get all the details from unpaid bookings based on booking_id
-        match car_state {
-            Some(car) => {
-                car.bookings.insert(booking_id, booking.clone());
-                state.borrow_mut().monitoring.log_car_checkout(booking.customer_principal_id, car_id, booking_id);
-                Ok(booking)
-            },
-            None => Err("Car not found".to_string()),
-        }
+    let car_state = STATE.with(|state| {
+        state.borrow().cars.get(&car_id)
     });
+    let transaction = match car_state {
+        Some(mut car) => {
+            car.bookings.insert(booking_id, booking.clone());
+            STATE.with_borrow_mut(|state| {
+                state.cars.insert(car_id, car.clone());
+                state.monitoring.log_car_checkout(booking.customer_principal_id, car_id, booking_id);
+            });
+            Ok(booking)
+        },
+        None => Err("Car not found".to_string()),
+    };
     transaction.map(|f| { f.remove_from_unpaid_bookings_by_booking_id() ; f})
+}
+
+#[update(guard = "is_controller")]
+async fn add_booking_for_a_car(
+    booking_id: u64,
+    booking_details: RentalTransaction,
+    payment: RazorpayPayment, 
+) -> Result<RentalTransaction, String> {
+
+    let mut booking = booking_details;
+
+    let car_id = booking.car_id;
+
+    booking.payment_status = PaymentStatus::Paid { payment };
+
+    let car_state = STATE.with(|state| {
+        state.borrow().cars.get(&car_id)
+    });
+    let transaction = match car_state {
+        Some(mut car) => {
+            car.bookings.insert(booking_id, booking.clone());
+            STATE.with_borrow_mut(|state| {
+                state.cars.insert(car_id, car.clone());
+                state.monitoring.log_car_checkout(booking.customer_principal_id, car_id, booking_id);
+            });
+            Ok(booking)
+        },
+        None => Err("Car not found".to_string()),
+    };
+    transaction
 }
 
 pub fn car_availibility(

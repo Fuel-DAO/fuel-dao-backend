@@ -1,8 +1,8 @@
 use candid::{Nat, Principal};
 use ic_cdk::caller;
 use crate::state::metadata::UpdateMetadataArgs;
-use crate::state::subaccount::Subaccount;
-use crate::validations::{check_collection_owner,check_not_anonymous};
+use crate::state::State;
+use crate::validations::{check_collection_owner, check_not_anonymous};
 use crate::{BookTokensArg, Icrc7BalanceOfArgItem, Icrc7OwnerOfRetItemInner, Icrc7TokenMetadataRetItemInnerItem1, Icrc7TokensOfArg, Icrc7TransferArgItem, Icrc7TransferRetItemInner};
 use crate::{state::{escrow::SaleStatus, models::{GetEscrowAccountRet, GetMetadataRet}}, STATE};
 use ic_cdk_macros::*;
@@ -19,8 +19,13 @@ pub async fn update_metadata( arg0: UpdateMetadataArgs) -> Result<Nat, String> {
 }
 
 
-// #[update(guard = "check_not_anonymous")]
-#[update]
+#[update(guard = "check_collection_owner")]
+pub fn update_annonymous_investor(new_investor: Principal) -> Result<(), String> {
+    STATE.with_borrow_mut(|f|  {f.escrow.update_annonymous_investor(new_investor); Ok(())} )
+}
+
+
+#[update(guard = "check_not_anonymous")]
 pub async fn book_tokens( arg: BookTokensArg) -> Result<bool, String> {
     let   f  =  STATE.with_borrow( |f|  f.clone() );
     let qunatity =  arg.quantity.clone();
@@ -58,6 +63,19 @@ pub async fn reject_sale() -> Result<bool, String> {
 pub async fn refund_excess_after_sale(invester: Principal) -> Result<bool, String> {
     let    f  =  STATE.with( |f|  f.borrow().clone() );
     f.refund_excess_after_sale(invester).await
+}
+
+#[update(guard = "check_collection_owner")]
+pub async fn refund_icp_amount_after_sale_from_annonymous( amount: f64 ) -> Result<bool, String> {
+    let    f  =  STATE.with( |f|  f.borrow().clone() );
+    let invester = Principal::anonymous();
+    f.refund_icp_amount_after_sale_from_annonymous(invester, amount).await
+}
+
+#[update(guard = "check_collection_owner")]
+pub async fn transfer_icp_amount_from_annonymous_to_investor( amount: f64, invester: Principal ) -> Result<bool, String> {
+    let    f  =  STATE.with( |f|  f.borrow().clone() );
+    f.refund_icp_amount_from_annonymous_to_investor( amount, invester).await
 }
 
 #[query]
@@ -98,7 +116,7 @@ pub fn icrc7_tokens_of(   account: Icrc7TokensOfArg,
 }
 
 
-#[query]
+#[query(guard = "check_not_anonymous")]
 pub async fn get_escrow_account() -> Result<GetEscrowAccountRet, String> {
     STATE.with( |f|  f.borrow().clone() )
     .get_escrow_account().await 
@@ -107,13 +125,30 @@ pub async fn get_escrow_account() -> Result<GetEscrowAccountRet, String> {
 #[query]
 pub async fn get_metadata() -> Result<GetMetadataRet, String> {
     STATE.with( |f|  f.borrow().clone() )
-    .get_metadata().await 
+    .get_metadata() 
 }
 
 #[query]
 pub async fn get_participating_investors() -> Vec<Principal> {
     STATE.with( |f|  f.borrow().clone() )
     .get_participating_investors().await 
+}
+
+#[query]
+pub async fn canister_escrow_account() -> String {
+    State::canister_escrow_account()
+}
+
+#[update]
+pub async fn canister_balance_in_icp() -> Result<f64, String> {
+    STATE.with( |f|  f.borrow().clone() )
+    .canister_balance_in_icp().await 
+}
+
+#[update(guard = "check_collection_owner")]
+pub async fn trasfer_icp_to_investors(icp: f64) -> Result<String, String> {
+    STATE.with( |f|  f.borrow().clone() )
+    .trasfer_icp_to_investors(icp).await 
 }
 
 
@@ -134,4 +169,9 @@ pub async fn update_sale_status(status: SaleStatus) -> SaleStatus {
 pub async fn get_total_booked_tokens() -> u128 {
     STATE.with( |f|  f.borrow().clone() )
     .get_total_booked_tokens().await 
+}
+
+#[query]
+pub async fn get_escrow_account_id_for_principal( canister_id: Option<Principal>,principal: Principal,) -> String {
+    State::genral_escrow_account(canister_id, principal)
 }
