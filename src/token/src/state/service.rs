@@ -52,21 +52,53 @@ impl State {
         Ok((escrow_balance as f64) / 1e8 as f64)
     }
 
+    pub async fn get_escrow_balance_for_principal(&self, user: Principal) -> Result<f64, String> {
+
+        if self.escrow.sale_status == SaleStatus::Live {
+            return Err("Can not perform this action while sale is live".to_string());
+        }
+
+        let metadata = self.get_metadata()?;
+
+        let icp_ledger = metadata.token;
+
+        let owner = ic_cdk::api::id();
+
+        let subaccount = user;
+
+        let subaccount = Some(Subaccount::from(&subaccount).to_vec());
+
+        let escrow_balance = EscrowStore::icrc1_balance_of(
+            icp_ledger,
+            Icrc1Account {
+                owner,
+                subaccount,
+            },
+        )
+        .await?;
+        Ok((escrow_balance as f64) / 1e8 as f64)
+    }
+
     pub async fn trasfer_icp_to_investors(&self, icp: f64) -> Result<String, String> {
         let ledger = self.get_metadata()?.token;
-        let index = self.get_metadata()?.index;
         const TRANSFER_FEE: u64 = 10_000;
         let mut memo = 0u64;
 
         let amount_to_transfer = ((icp * 1e8 / (self.tokens.tokens.len() as f64)) - (TRANSFER_FEE as f64)) as u64 ;
 
+        let canister_balance_in_icp = self.canister_balance_in_icp().await?;
+
+        if canister_balance_in_icp < icp {
+            return  Err("Insufficient balance to complete this request.".into());
+        }
+
         let from_principal = ic_cdk::id();
 
         for ( _,investor) in self.tokens.tokens.iter() {
 
-            let transfer_to_account_id = EscrowStore::get_account_id_and_balance_of_who_sent_amout_to_escrow_for_invester(&investor.owner.principal, index ).await?.0;
+            let transfer_to_account_id = Self::genral_escrow_account(Some(ic_cdk::id()), investor.owner.principal) ;
 
-             memo = EscrowStore::transfer_from_escrow(ledger, amount_to_transfer, &from_principal, transfer_to_account_id, memo  ).await?;
+             memo = EscrowStore::transfer_from_escrow(ledger, amount_to_transfer, &from_principal, transfer_to_account_id, memo  ).await.map_err(|f| format!("Failed for investor: {}\n{f}", investor.owner.principal.to_text()))?;
         }
 
         Ok("Transfer successful".into())
@@ -560,6 +592,12 @@ impl State {
                 {
                     return Some(Icrc7TransferRetItemInner::Err(
                         Icrc7TransferRetItemInnerErr::InvalidRecipient,
+                    ));
+                }
+
+                if self.escrow.transfer_one_token(caller(), arg.to.owner ).is_err() {
+                    return Some(Icrc7TransferRetItemInner::Err(
+                        Icrc7TransferRetItemInnerErr::NonExistingTokenId,
                     ));
                 }
 

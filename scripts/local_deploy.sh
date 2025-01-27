@@ -4,3 +4,5 @@ dfx deploy --specified-id 44asb-eyaaa-aaaaj-qnfua-cai  provision
 dfx deploy --specified-id ewirk-vqaaa-aaaaj-qa57q-cai  backend
 
 dfx canister update-settings --add-controller  "2vxsx-fae" provision 
+dfx canister update-settings --add-controller  "2vxsx-fae" asset_proxy 
+dfx canister update-settings --add-controller  "2vxsx-fae" asset 

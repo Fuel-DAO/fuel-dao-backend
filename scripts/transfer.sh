@@ -1,5 +1,5 @@
 dfx canister call avqkn-guaaa-aaaaa-qaaea-cai get_escrow_account
 
-dfx ledger transfer 7a1572cb607fdc16e81f220000e7df981402bd138578bd1b81e5289d3fa27673 --icp 1 --memo 12345
+dfx ledger transfer --memo 1  --amount 1 'c40332503c0d45fc94934d39312b3bd0176d1cdf68f5ed02accfcf7b2b876003' --ledger-canister-id "b77ix-eeaaa-aaaaa-qaada-cai"
 
 dfx canister call avqkn-guaaa-aaaaa-qaaea-cai book_tokens '(record { quantity = 5; })'

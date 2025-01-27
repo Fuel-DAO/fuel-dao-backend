@@ -6,6 +6,7 @@ use crate::state::escrow::SaleStatus;
 use crate::state::icrc7::ICRC7MetadataQueryResult;
 use crate::state::metadata::*;
 use crate::state::supported_standards::SupportedStandard;
+use crate::state::escrow::EscrowTokenBalance;
 use candid::Nat;
 use candid::Principal;
 use ic_cdk::storage;

@@ -23,6 +23,11 @@ pub enum SaleStatus {
     Accepted,
     Rejected,
 }
+#[derive(CandidType, Serialize, Deserialize,)]
+pub struct EscrowTokenBalance {
+    pub icp_balance: f64, 
+    pub token_balance: usize,
+}
 
 impl Default for SaleStatus {
     fn default() -> Self {
@@ -74,6 +79,23 @@ impl EscrowStore {
         self.booked_tokens
             .insert(owner_key, current_amount + quantity);
         self.total_booked_tokens += quantity;
+    }
+
+    pub fn transfer_one_token(&mut self, owner: Principal, to_owner: Principal ) -> Result<(), String> {
+        let owner_key = owner.clone();
+        let current_amount = self.booked_tokens.get(&owner_key).cloned().unwrap_or(0);
+        if current_amount > 0 {
+            self.booked_tokens
+            .insert(owner_key, current_amount - 1);
+            let new_owner_key = to_owner.clone();
+            let current_amount = self.booked_tokens.get(&new_owner_key).cloned().unwrap_or(0);
+            self.booked_tokens
+            .insert(new_owner_key, current_amount + 1);
+            Ok(())
+        } else {
+            Err("Owner does not have enough tokens".into())
+        }
+
     }
 
     pub fn update_annonymous_investor(&mut self, owner: Principal) {
