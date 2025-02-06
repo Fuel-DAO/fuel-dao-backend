@@ -58,9 +58,17 @@ jobs:
         run: |
           dfx cycles balance --network ic
 
-      # - name: Deploy Canisters
-      #   run: |
-      #     dfx deploy --network ic
+      - name: Deploy Provision
+        run: |
+          dfx deploy provision --network ic
+
+      - name: Tranfer cycles to Provision
+        run: |
+          dfx cycles top-up provision 1000000000000 --network ic
+      
+      - name: Get Balance
+        run: |
+          dfx cycles balance --network ic
 
       # - name: Call Upload Token Wasm Script
       #   run: |
