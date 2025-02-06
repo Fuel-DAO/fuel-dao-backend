@@ -1,0 +1,15 @@
+{
+    "provision": {
+      "ic": "6x7ms-kiaaa-aaaad-aajra-cai"
+    },
+    "asset": {
+      "ic": "6fz3l-gyaaa-aaaad-aajsa-cai"
+    },
+    "asset_proxy": {
+      "ic": "6q6kg-hqaaa-aaaad-aajrq-cai"
+    },
+    "backend": {
+      "ic": "664ho-4aaaa-aaaad-aajqq-cai",
+      "local": "bw4dl-smaaa-aaaaa-qaacq-cai"
+    }
+  }

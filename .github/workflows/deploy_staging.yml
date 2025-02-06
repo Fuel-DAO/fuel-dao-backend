@@ -1,0 +1,76 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run Staging Deployment
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: read
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Install Dfx
+        uses: dfinity/setup-dfx@main
+        with:
+          dfx-version: "0.24.3"
+
+      - name: Confirm successful installation
+        run: dfx --version
+
+      - name: Cache rust dependencies, build output and DFX build cache
+        uses: actions/cache@v3
+        with:
+          key: rust-test-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            .dfx/cache/
+
+
+      - name: Set canister_ids.json for staging
+        run: |
+          cp canister_ids_staging.json canister_ids.json
+          cat canister_ids.json
+      
+      
+      - name: Import DFX Identity # Import DFX identity using secret key
+        run: |
+          touch actions_identity.pem
+          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
+          dfx identity import --storage-mode=plaintext actions actions_identity.pem
+          dfx identity use actions
+
+      - name: Get Balance
+        run: |
+          dfx cycles balance --network ic
+
+      # - name: Deploy Canisters
+      #   run: |
+      #     dfx deploy --network ic
+
+      # - name: Call Upload Token Wasm Script
+      #   run: |
+      #     chmod +x ./scripts/upload_token_wasm.sh
+      #     ./scripts/upload_token_wasm.sh
+
+      # - name: Call Upload Asset Wasm Script
+      #   run: |
+      #     chmod +x ./scripts/upload_asset_wasm.sh
+      #     ./scripts/upload_asset_wasm.sh
+
+
+    
