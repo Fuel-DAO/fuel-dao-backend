@@ -1,12 +1,9 @@
-name: Canisters Test Suite and Deployment
+name: Deploy Staging
 
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - staging
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,7 +11,7 @@ concurrency:
 
 jobs:
   test:
-    name: Deploy Canisters
+    name: Run Staging Deployment
     runs-on: ubuntu-22.04
 
     steps:
@@ -24,12 +21,6 @@ jobs:
         uses: rikhuijzer/cache-install@v1.1.4
         with:
           key: nix-${{ hashFiles('default.nix') }}
-      # - name: Install Rust
-      #   run: |
-      #     sudo apt update
-      #     curl https://sh.rustup.rs -sSf | sh -s -- -y
-      #     source $HOME/.cargo/env
-      #     cargo install ic-cdk-optimizer
 
       - name: Cache rust dependencies, build output and DFX build cache
         uses: actions/cache@v3
@@ -56,12 +47,6 @@ jobs:
       - name: Use myidentity # Start local DFX replica
         run: nix-shell --run "dfx identity use actions"
 
-      # - name: Top up Provision 
-      #   run: nix-shell --run "dfx cycles top-up provision 6000000000000 --network ic"
-
-      # - name: Get Identity Principal 
-      #   run: nix-shell --run "dfx identity get-principal"
-
       - name: check balance
         run: nix-shell --run "dfx cycles balance --network ic"
 
@@ -69,43 +54,36 @@ jobs:
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx deploy backend --network ic"
- 
-
-      - name: Deploy Asset_proxy Canister to ICP # Deploy canister to the Internet Computer
-        env:
-          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
-        run: |
-          nix-shell --run "dfx deploy asset_proxy --network ic"
-
-      - name: Deploy Asset Canister to ICP # Deploy canister to the Internet Computer
-        env:
-          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
-        run: |
-          nix-shell --run "dfx deploy asset --network ic"
-        
+          nix-shell --run "dfx deploy backend --network ic --with-cycles=1000000000000"
+         
       - name: Deploy Provision Canister to ICP # Deploy canister to the Internet Computer
         env:
           ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
         run: |
-          nix-shell --run "dfx deploy provision --network ic"          
-
-      # - name: Call Add controller Script 
-      #   run: |
-      #     chmod +x ./scripts/add_controller.sh
-      #     nix-shell --run "./scripts/add_controller.sh"
-
-      # - name: Call Upload Asset Wasm Script 
-      #   run: |
-      #     chmod +x ./scripts/upload_asset_wasm.sh
-      #     nix-shell --run "./scripts/upload_asset_wasm.sh"
-
+          nix-shell --run "dfx deploy provision --network ic --with-cycles=2000000000000"
+      - name: Deploy Asset_proxy Canister to ICP # Deploy canister to the Internet Computer
+        env:
+          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+        run: |
+          nix-shell --run "dfx deploy asset_proxy --network ic --with-cycles=1000000000000"
+      - name: Deploy Asset Canister to ICP # Deploy canister to the Internet Computer
+        env:
+          ICP_NETWORK: ic # Specify the network to deploy to (default is 'ic')
+        run: |
+          nix-shell --run "dfx deploy asset --network ic --with-cycles=1000000000000"
+      - name: Call Upload Asset Wasm Script 
+        run: |
+          chmod +x ./scripts/upload_asset_wasm.sh
+          nix-shell --run "./scripts/upload_asset_wasm.sh"
+      - name: Call Add controller Script 
+        run: |
+          chmod +x ./scripts/add_controller.sh
+          nix-shell --run "./scripts/add_controller.sh"
       - name: Call Upload Token Wasm Script 
         run: |
           chmod +x ./scripts/upload_token_wasm.sh
           nix-shell --run "./scripts/upload_token_wasm.sh"
-
       - name: Stop Local Replica # Stop the local DFX replica
         run: nix-shell --run "dfx stop"
 
-      
+    
