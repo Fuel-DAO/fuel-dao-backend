@@ -58,9 +58,9 @@ jobs:
         run: |
           dfx cycles balance --network ic
 
-      - name: Deploy Provision
-        run: |
-          dfx deploy provision --network ic
+      # - name: Deploy Provision
+      #   run: |
+      #     dfx deploy provision --network ic
 
       - name: Tranfer cycles to Provision
         run: |
