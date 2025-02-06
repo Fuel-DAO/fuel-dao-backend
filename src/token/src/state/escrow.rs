@@ -1,10 +1,9 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_cdk::api::call::call;
-use ic_ledger_types::{transfer, Timestamp, TransferArgs};
+use ic_ledger_types::{transfer,  TransferArgs};
 use ic_ledger_types::{Memo, Tokens, DEFAULT_FEE};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::mem;
 
 use crate::{
     state::{
@@ -14,7 +13,7 @@ use crate::{
     Icrc1Account,
 };
 
-use super::{index_canister::GetAccountIdentifierTransactionsResponse, metadata::Metadata};
+use super::index_canister::GetAccountIdentifierTransactionsResponse;
 
 /// Sale Status Enum
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, PartialEq)]

@@ -1,7 +1,7 @@
 use candid::{Nat, Principal};
 use ic_cdk::caller;
 use ic_ledger_types::AccountIdentifier;
-use crate::state::escrow::{EscrowStore, EscrowTokenBalance};
+use crate::state::escrow::EscrowTokenBalance;
 use crate::state::metadata::UpdateMetadataArgs;
 use crate::state::State;
 use crate::validations::{check_collection_owner, check_not_anonymous};
