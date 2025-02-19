@@ -1,0 +1,123 @@
+name: Release and submit proposal
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Publish canister artifacts and send upgrade proposals
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+      contents: write
+    env:
+      NEURON_ID: 8f9a87010a8d578a40be66eb7101aa4fd2d945fd44ff070c71771e53be2ff2ac
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dfx
+        uses: dfinity/setup-dfx@main
+        with:
+          dfx-version: "0.24.3"
+
+      - name: Confirm successful installation
+        run: dfx --version
+
+      - name: Install quill from GitHub Releases
+        run: |
+          curl -LJO https://github.com/dfinity/quill/releases/download/v0.4.2/quill-linux-x86_64-musl
+          mv quill-linux-x86_64-musl quill
+          chmod +x quill
+
+      - name: Cache rust dependencies, build output and DFX build cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            .dfx/cache/
+          key: rust-test-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Copy prod canister ids json 
+        run: cp canister_ids_prod.json canister_ids.json
+
+      - name: Import DFX identity
+        run: |
+          touch actions_identity.pem
+          echo "${{ secrets.FUEL_DAO_CANISTER_CONTROLLER_PRIVATE_KEY }}" > actions_identity.pem
+          dfx identity import --storage-mode=plaintext actions actions_identity.pem
+          dfx identity use actions
+
+      - name: Get commits since last release
+        uses: loopwerk/tag-changelog@v1
+        id: changelog
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Display Changelog
+        run: echo "${{ steps.changelog.outputs.changes }}"
+
+      - name: Selectively Build and Upgrade Canisters
+        run: |
+          # Extract canister names from canister_ids.json using jq.
+          # This assumes canister_ids.json is a JSON object with canister names as keys.
+          CANISTERS=$(jq -r 'keys | join(",")' canister_ids.json)
+          echo "Detected Canisters: $CANISTERS"
+
+          IFS=',' read -ra CANISTER_ARRAY <<< "$CANISTERS"
+          for CANISTER in "${CANISTER_ARRAY[@]}"; do
+            echo "---------------------------------------------"
+            echo "Building $CANISTER..."
+            dfx build "$CANISTER" --network=ic
+            
+            # Compute the new .wasm hash.
+            NEW_HASH=$(sha256sum .dfx/ic/canisters/"$CANISTER"/"$CANISTER".wasm | awk '{print $1}')
+            echo "New Hash for ${CANISTER}: ${NEW_HASH}"
+
+            # Fetch the last deployed module hash.
+            echo "Fetching last deployed module hash for ${CANISTER}..."
+            DEPLOYED_HASH=$(dfx canister info "$CANISTER" --network ic | grep 'Module hash' | awk '{print $3}')
+            echo "Deployed Hash for ${CANISTER}: ${DEPLOYED_HASH}"
+
+            if [[ "$NEW_HASH" == "$DEPLOYED_HASH" ]]; then
+              echo "No changes detected for ${CANISTER}. Skipping upgrade proposal."
+              continue
+            fi
+
+            echo "Changes detected! Submitting upgrade proposal for ${CANISTER}..."
+
+            # Get the canister ID.
+            CANISTER_ID=$(dfx canister id "$CANISTER" --network=ic)
+            mkdir -p "proposals/${CANISTER}"
+            touch "proposals/${CANISTER}/upgrade.json"
+            
+            ./quill sns \
+              --canister-ids-file ./sns_canister_ids.json \
+              --pem-file actions_identity.pem \
+              make-upgrade-canister-proposal \
+              --title "Upgrade ${CANISTER}" \
+              --summary "
+              # Upgrade ${CANISTER}
+              
+              ## Changes Since Last Release
+
+              ${{ steps.changelog.outputs.changes }}
+              " \
+              --url 'https://fuelev.ai' \
+              --target-canister-id "$CANISTER_ID" \
+              --wasm-path .dfx/ic/canisters/"$CANISTER"/"$CANISTER".wasm \
+              --canister-upgrade-arg "(record {version=\"${{ github.ref_name }}\"})" \
+              $NEURON_ID > "proposals/${CANISTER}/upgrade.json"
+            
+            ./quill send "proposals/${CANISTER}/upgrade.json" --yes
+          done
