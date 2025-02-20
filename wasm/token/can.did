@@ -1,6 +1,20 @@
 type Account = record { owner : principal; subaccount : opt blob };
 type BookTokensArg = record { quantity : nat32 };
 type CanisterArgs = variant { Upgrade; Init : record { metadata : Metadata } };
+type CreditLog = record {
+  status : CreditLogStatus;
+  credit_id : nat64;
+  link : opt text;
+  note : opt text;
+  timestamp : nat64;
+  log_event : opt CreditLogEvent;
+};
+type CreditLogEvent = variant {
+  Equal : record { amount_e8s : nat64 };
+  AvailEscrowBalance;
+  Selected : record { token_ids_and_amount_e8s : vec record { nat32; nat64 } };
+};
+type CreditLogStatus = variant { Ongoing; Completed; Pending };
 type EscrowTokenBalance = record {
   token_balance : nat64;
   icp_balance : float64;
@@ -120,15 +134,26 @@ type Metadata = record {
   images : vec text;
 };
 type MetadataValue = variant { Nat : nat; Text : text };
+type ProfitLogState = record {
+  status : ProfitStatus;
+  amount_e8s : nat64;
+  timestamp : nat64;
+};
+type ProfitStatus = variant {
+  Debit : record { account_id : text };
+  Credit : record { credit_id : nat64 };
+};
 type Result = variant { Ok : bool; Err : text };
 type Result_1 = variant { Ok : float64; Err : text };
+type Result_10 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : nat; Err : text };
-type Result_3 = variant { Ok : GetEscrowAccountRet; Err : text };
-type Result_4 = variant { Ok : EscrowTokenBalance; Err : text };
-type Result_5 = variant { Ok : vec principal; Err : text };
-type Result_6 = variant { Ok : GetMetadataRet; Err : text };
-type Result_7 = variant { Ok : text; Err : text };
-type Result_8 = variant { Ok; Err : text };
+type Result_3 = variant { Ok : nat64; Err : text };
+type Result_4 = variant { Ok : CreditLogEvent; Err : text };
+type Result_5 = variant { Ok; Err : text };
+type Result_6 = variant { Ok : GetEscrowAccountRet; Err : text };
+type Result_7 = variant { Ok : EscrowTokenBalance; Err : text };
+type Result_8 = variant { Ok : vec principal; Err : text };
+type Result_9 = variant { Ok : GetMetadataRet; Err : text };
 type SaleStatus = variant { Live; Rejected; Accepted };
 type SupportedStandard = record { url : text; name : text };
 type TransferArg = record {
@@ -178,14 +203,25 @@ service : (CanisterArgs) -> {
   canister_balance_in_icp : () -> (Result_1);
   canister_escrow_account : () -> (text) query;
   change_ownership : (principal) -> (Result_2);
+  create_admin_profit_transfer_log : (
+      opt CreditLogEvent,
+      opt text,
+      opt text,
+    ) -> (Result_3);
+  create_investor_profit_transfer_and_log : (nat64) -> (Result_4);
+  debit_profit_entry_for_investor : (nat64, text) -> (Result_5);
+  get_admin_credit_log_by_id : (nat64) -> (opt CreditLog) query;
+  get_admin_credit_logs : () -> (vec CreditLog) query;
   get_booked_tokens : (opt principal) -> (nat) query;
-  get_escrow_account : () -> (Result_3) query;
+  get_escrow_account : () -> (Result_6) query;
   get_escrow_account_id_for_principal : (opt principal, principal) -> (
       text,
     ) query;
-  get_escrow_balance_and_token_balance_for_user : (opt principal) -> (Result_4);
-  get_excess_escrow_balance : () -> (Result_5) query;
-  get_metadata : () -> (Result_6) query;
+  get_escrow_balance_and_token_balance_for_user : (opt principal) -> (Result_7);
+  get_excess_escrow_balance : () -> (Result_8) query;
+  get_invetor_balance_e8s : (opt principal) -> (opt nat64) query;
+  get_invetor_balance_logs : (opt principal) -> (vec ProfitLogState) query;
+  get_metadata : () -> (Result_9) query;
   get_participating_investors : () -> (vec principal) query;
   get_sale_status : () -> (SaleStatus) query;
   get_total_booked_tokens : () -> (nat) query;
@@ -218,6 +254,7 @@ service : (CanisterArgs) -> {
       vec opt Icrc7TransferRetItemInner,
     );
   icrc7_tx_window : () -> (opt nat) query;
+  init_profit_log : () -> ();
   refund_excess_after_sale : (principal) -> (Result);
   refund_icp_amount_after_sale_from_annonymous : (float64) -> (Result);
   reject_sale : () -> (Result);
@@ -228,9 +265,8 @@ service : (CanisterArgs) -> {
   transfer_icp_amount_from_annonymous_to_investor : (float64, principal) -> (
       Result,
     );
-  transfer_my_balance_from_escrow : (float64, text) -> (Result_1);
-  trasfer_icp_to_investors : (float64) -> (Result_7);
-  update_annonymous_investor : (principal) -> (Result_8);
+  trasfer_icp_to_investors_depricated : (float64) -> (Result_10);
+  update_annonymous_investor : (principal) -> (Result_5);
   update_metadata : (UpdateMetadataArgs) -> (Result_2);
   update_sale_status : (SaleStatus) -> (SaleStatus);
 }

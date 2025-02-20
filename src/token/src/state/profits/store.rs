@@ -6,6 +6,7 @@ use serde::Serialize;
 #[derive(CandidType, Serialize, Deserialize, Debug, Default, Clone)]
 pub struct CreditLogsState {
     pub credit_logs: BTreeMap<u64, CreditLog>,
+    pub investors_credit_logs: PorfitStore,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Default, Clone)]
@@ -18,7 +19,7 @@ pub struct  CreditLog {
     pub link: Option<String>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(CandidType, Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub enum CreditLogStatus {
     #[default]
     Pending,

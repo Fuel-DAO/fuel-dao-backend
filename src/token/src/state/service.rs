@@ -6,17 +6,23 @@ use crate::{
 };
 
 use super::{
-    escrow::{EscrowStore, SaleStatus},
-    metadata::{self, Metadata},
-    models::*,
-    subaccount::{AccountIdentifier, Subaccount},
-    State, TokenState,
+    escrow::{EscrowStore, SaleStatus}, metadata::{self, Metadata}, models::*, profits::store::CreditLogsState, subaccount::{AccountIdentifier, Subaccount}, State, TokenState
 };
 use candid::{self, CandidType, Decode, Deserialize, Encode, Nat, Principal};
 use ic_cdk::{api::call::CallResult, caller};
 use ic_ledger_types::{Memo, Tokens, DEFAULT_SUBACCOUNT};
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
 impl State {
+
+    pub fn init_profit_log_if_required(&mut self) {
+        match self.profit_transfer_and_logs {
+            Some(_) => {}
+            None => {
+                self.profit_transfer_and_logs = Some(CreditLogsState::default());
+            }
+        } 
+    } 
+
     pub fn canister_escrow_account() -> String {
         let principal = ic_cdk::api::id();
         let subaccount = Subaccount::from(&principal);

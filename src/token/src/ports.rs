@@ -3,8 +3,9 @@ use ic_cdk::caller;
 use ic_ledger_types::AccountIdentifier;
 use crate::state::escrow::EscrowTokenBalance;
 use crate::state::metadata::UpdateMetadataArgs;
+use crate::state::profits::store::*;
 use crate::state::State;
-use crate::validations::{check_collection_owner, check_not_anonymous};
+use crate::validations::{check_collection_owner, check_not_anonymous, check_controller};
 use crate::{BookTokensArg, Icrc7BalanceOfArgItem, Icrc7OwnerOfRetItemInner, Icrc7TokenMetadataRetItemInnerItem1, Icrc7TokensOfArg, Icrc7TransferArgItem, Icrc7TransferArgItemTo, Icrc7TransferRetItemInner};
 use crate::{state::{escrow::SaleStatus, models::{GetEscrowAccountRet, GetMetadataRet}}, STATE};
 use ic_cdk_macros::*;
@@ -186,13 +187,106 @@ pub async fn get_escrow_balance_and_token_balance_for_user(user: Option<Principa
     })
 }
 
-#[update(guard = "check_collection_owner")]
-pub async fn trasfer_icp_to_investors(icp: f64) -> Result<String, String> {
+#[update(guard = "check_controller")]
+pub  fn init_profit_log() {
+    STATE.with( |f|{  let mut state = f.borrow_mut();
+    match state.profit_transfer_and_logs {
+        Some(_) => {}
+        None => {
+            state.profit_transfer_and_logs = Some(CreditLogsState::default());
+        }
+    } } );
+    
+
+}
+
+
+#[update(guard = "check_controller")]
+pub async fn create_admin_profit_transfer_log(log_event: Option<CreditLogEvent>,
+    note: Option<String>,
+    link: Option<String>,) -> Result<u64, String> {
+    Ok(STATE.with_borrow_mut( |f| {
+        if let Some(profit_logs) = f.profit_transfer_and_logs.as_mut() {
+            profit_logs.add_new_log(log_event, note, link)
+        } else {
+            f.init_profit_log_if_required();
+            f.profit_transfer_and_logs.as_mut().unwrap().add_new_log(log_event, note, link)
+        }
+    }))
+}
+
+#[update(guard = "check_controller")]
+pub async fn create_investor_profit_transfer_and_log(credit_id: u64) -> Result<CreditLogEvent, String> {
+    let (token_state, ledger) = STATE.with( |f| {
+        let token_state = f.borrow().tokens.clone();
+        let ledger = f.borrow().get_metadata().unwrap().token;
+        (token_state, ledger)
+    });
+    let mut profits = STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs.clone()
+    });
+    let res =  profits.as_mut().unwrap().start_sharing_profit(credit_id, token_state, ledger).await;
+
+    STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs= profits;
+    });
+
+    res
+}
+
+#[update]
+pub async fn debit_profit_entry_for_investor(amount_e8s: u64, account_id: String) -> Result<(), String> {
+    
+    let mut profits = STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs.clone()
+    });
+    let res =  profits.as_mut().unwrap().investors_credit_logs.debit_profit_entry(caller(), amount_e8s, account_id).await;
+
+    STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs= profits;
+    });
+
+    res
+}
+
+#[query]
+pub fn get_admin_credit_log_by_id(credit_id: u64) -> Option<CreditLog> {
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.as_ref().and_then(|f| f.get_credit_log(credit_id))
+    })
+}
+
+#[query]
+pub fn get_invetor_balance_e8s(investor: Option<Principal>) -> Option<u64> {
+    let investor = investor.unwrap_or(caller());
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.as_ref().and_then(|f| Some(f.investors_credit_logs.get_current_balance_e8s(investor)))
+    })
+}
+
+#[query]
+pub fn get_admin_credit_logs() -> Vec<CreditLog> {
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.clone().map(|f| f.get_credit_logs()).unwrap_or_default()
+    })
+}
+
+#[query]
+pub fn get_invetor_balance_logs(investor: Option<Principal>) -> Vec<ProfitLogState> {
+    let investor = investor.unwrap_or(caller());
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.clone().map(|f| f.investors_credit_logs.get_logs(investor)).unwrap_or_default()
+    })
+}
+
+#[update(guard = "check_controller")]
+pub async fn trasfer_icp_to_investors_depricated(icp: f64) -> Result<String, String> {
     STATE.with( |f: &std::cell::RefCell<State>|  f.borrow().clone() )
     .trasfer_icp_to_investors(icp).await 
 }
 
-#[update]
+
+
 pub async fn transfer_my_balance_from_escrow(icp: f64, account_id: String) -> Result<f64, String> {
     let _ = AccountIdentifier::from_hex(&account_id)?;
     let user = caller();
