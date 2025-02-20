@@ -58,6 +58,10 @@ jobs:
         run: |
           dfx cycles balance --network ic
 
+      - name: Install wasm target
+        run: |
+          rustup target add wasm32-unknown-unknown
+
       - name: Deploy Provision
         run: |
           dfx deploy provision --network ic
