@@ -30,6 +30,11 @@ type CollectionRequest = record {
   treasury : principal;
   images : vec text;
 };
+type CreditLogEvent = variant {
+  Equal : record { amount_e8s : nat64 };
+  AvailEscrowBalance;
+  Selected : record { token_ids_and_amount_e8s : vec record { nat32; nat64 } };
+};
 type ListCollection = record {
   id : nat64;
   token_canister : principal;
@@ -37,7 +42,8 @@ type ListCollection = record {
 };
 type Result = variant { Ok : nat64; Err : text };
 type Result_1 = variant { Ok : ListCollection; Err : text };
-type Result_2 = variant { Ok : bool; Err : text };
+type Result_2 = variant { Ok : CreditLogEvent; Err : text };
+type Result_3 = variant { Ok : bool; Err : text };
 service : () -> {
   add_admin : (principal) -> (bool);
   add_asset_wasm : (blob) -> (bool);
@@ -47,7 +53,14 @@ service : () -> {
       Result_1,
     );
   approve_request : (nat64) -> (Result_1);
-  delete_collection : (nat64) -> (Result_2);
+  create_admin_profit_transfer_log : (
+      principal,
+      opt CreditLogEvent,
+      opt text,
+      opt text,
+    ) -> (Result);
+  create_investor_profit_transfer_and_log : (principal, nat64) -> (Result_2);
+  delete_collection : (nat64) -> (Result_3);
   get_asset_proxy_canister : () -> (opt principal) query;
   get_asset_wasm : () -> (opt blob) query;
   get_controllers : () -> (vec principal) query;
@@ -57,9 +70,9 @@ service : () -> {
   include_wasm : () -> (bool);
   is_admin : (opt principal) -> (bool) query;
   list_collections : () -> (vec ListCollection) query;
-  reject_request : (nat64) -> (Result_2);
-  remove_admin : (principal) -> (Result_2);
-  set_asset_proxy_canister : (principal) -> (Result_2);
-  upgrade_token_canister : (principal) -> (Result_2);
-  upgrade_token_canisters : () -> (Result_2);
+  reject_request : (nat64) -> (Result_3);
+  remove_admin : (principal) -> (Result_3);
+  set_asset_proxy_canister : (principal) -> (Result_3);
+  upgrade_token_canister : (principal) -> (Result_3);
+  upgrade_token_canisters : () -> (Result_3);
 }

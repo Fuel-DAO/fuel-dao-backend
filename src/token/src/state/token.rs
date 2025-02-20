@@ -93,6 +93,10 @@ pub fn to_account_id(principal: &str, subaccount: &Option<Vec<u8>>) -> String {
         }
     }
 
+    pub fn token_count_for_investor(&self, principal: Principal, subaccount: Option<Vec<u8>>) -> usize {
+        self.tokens.values().filter(|f| f.owner.principal == principal && f.owner.subaccount == subaccount).count()
+    }
+
     pub fn transfer(&mut self, token_id: u32, principal: Principal, subaccount: Option<Vec<u8>>) {
         if let Some(token) = self.tokens.get_mut(&token_id) {
             let holder_account_id = Self::to_account_id(&token.owner.principal.to_text(), &token.owner.subaccount);

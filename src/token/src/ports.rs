@@ -1,9 +1,12 @@
 use candid::{Nat, Principal};
 use ic_cdk::caller;
+use ic_ledger_types::AccountIdentifier;
+use crate::state::escrow::EscrowTokenBalance;
 use crate::state::metadata::UpdateMetadataArgs;
+use crate::state::profits::store::*;
 use crate::state::State;
-use crate::validations::{check_collection_owner, check_not_anonymous};
-use crate::{BookTokensArg, Icrc7BalanceOfArgItem, Icrc7OwnerOfRetItemInner, Icrc7TokenMetadataRetItemInnerItem1, Icrc7TokensOfArg, Icrc7TransferArgItem, Icrc7TransferRetItemInner};
+use crate::validations::{check_collection_owner, check_not_anonymous, check_controller};
+use crate::{BookTokensArg, Icrc7BalanceOfArgItem, Icrc7OwnerOfRetItemInner, Icrc7TokenMetadataRetItemInnerItem1, Icrc7TokensOfArg, Icrc7TransferArgItem, Icrc7TransferArgItemTo, Icrc7TransferRetItemInner};
 use crate::{state::{escrow::SaleStatus, models::{GetEscrowAccountRet, GetMetadataRet}}, STATE};
 use ic_cdk_macros::*;
 
@@ -65,10 +68,38 @@ pub async fn refund_excess_after_sale(invester: Principal) -> Result<bool, Strin
     f.refund_excess_after_sale(invester).await
 }
 
+#[update(guard = "check_collection_owner")]
+pub async fn refund_icp_amount_after_sale_from_annonymous( amount: f64 ) -> Result<bool, String> {
+    let    f  =  STATE.with( |f|  f.borrow().clone() );
+    let invester = Principal::anonymous();
+    f.refund_icp_amount_after_sale_from_annonymous(invester, amount).await
+}
+
+#[update(guard = "check_collection_owner")]
+pub async fn transfer_icp_amount_from_annonymous_to_investor( amount: f64, invester: Principal ) -> Result<bool, String> {
+    let    f  =  STATE.with( |f|  f.borrow().clone() );
+    f.refund_icp_amount_from_annonymous_to_investor( amount, invester).await
+}
+
 #[query]
 pub async fn get_booked_tokens( arg0: Option<Principal>) -> u128 {
     STATE.with( |f|  f.borrow().clone() )
     .get_booked_tokens(arg0).await 
+}
+
+#[update]
+pub fn token_transfer_to_principal(token_id: u32, user_principal: Principal  ) -> Vec<Option<Icrc7TransferRetItemInner>>  {
+    let args = Icrc7TransferArgItem {
+        to: Icrc7TransferArgItemTo {
+            owner: user_principal, 
+            subaccount: Some(crate::state::subaccount::Subaccount::from(&user_principal).to_vec())
+        }, 
+        token_id, 
+        memo: None, 
+        from_subaccount: Some(crate::state::subaccount::Subaccount::from(&caller()).to_vec()), 
+        created_at_time: None, 
+    };
+    STATE.with( |f|  f.borrow_mut().icrc_7_transfer(vec![args]) )
 }
 
 #[update]
@@ -96,6 +127,18 @@ pub fn icrc7_tokens(  prev: Option<u32>,
     STATE.with( |f|  f.borrow().icrc_7_tokens(prev, take) )
 }
 #[query]
+pub fn tokens_of( user: Option<Principal>,
+    prev: Option<u32>,
+    take: Option<u32>,) -> Vec<u32>  {
+        let user = user.unwrap_or(caller());
+        let account = Icrc7TokensOfArg {
+            owner: user, 
+            subaccount: Some(crate::state::subaccount::Subaccount::from(&user).to_vec())
+        };
+    STATE.with( |f|  f.borrow().icrc_7_tokens_of(account,prev, take) )
+}
+
+#[query]
 pub fn icrc7_tokens_of(   account: Icrc7TokensOfArg,
     prev: Option<u32>,
     take: Option<u32>,) -> Vec<u32>  {
@@ -103,7 +146,7 @@ pub fn icrc7_tokens_of(   account: Icrc7TokensOfArg,
 }
 
 
-#[query]
+#[query(guard = "check_not_anonymous")]
 pub async fn get_escrow_account() -> Result<GetEscrowAccountRet, String> {
     STATE.with( |f|  f.borrow().clone() )
     .get_escrow_account().await 
@@ -132,10 +175,135 @@ pub async fn canister_balance_in_icp() -> Result<f64, String> {
     .canister_balance_in_icp().await 
 }
 
-#[update(guard = "check_collection_owner")]
-pub async fn trasfer_icp_to_investors(icp: f64) -> Result<String, String> {
-    STATE.with( |f|  f.borrow().clone() )
+#[update]
+pub async fn get_escrow_balance_and_token_balance_for_user(user: Option<Principal>) -> Result<EscrowTokenBalance, String> {
+    let user  = user.unwrap_or(caller());
+    let state = STATE.with( |f|  f.borrow().clone() );
+    let icp_balance =  state.get_escrow_balance_for_principal(user).await?;
+    let subaccount = Some(crate::state::subaccount::Subaccount::from(&user).to_vec());
+    let token_balance = state.tokens.token_count_for_investor(user, subaccount);
+    Ok(EscrowTokenBalance {
+        icp_balance, token_balance,
+    })
+}
+
+#[update(guard = "check_controller")]
+pub  fn init_profit_log() {
+    STATE.with( |f|{  let mut state = f.borrow_mut();
+    match state.profit_transfer_and_logs {
+        Some(_) => {}
+        None => {
+            state.profit_transfer_and_logs = Some(CreditLogsState::default());
+        }
+    } } );
+    
+
+}
+
+
+#[update(guard = "check_controller")]
+pub async fn create_admin_profit_transfer_log(log_event: Option<CreditLogEvent>,
+    note: Option<String>,
+    link: Option<String>,) -> Result<u64, String> {
+    Ok(STATE.with_borrow_mut( |f| {
+        if let Some(profit_logs) = f.profit_transfer_and_logs.as_mut() {
+            profit_logs.add_new_log(log_event, note, link)
+        } else {
+            f.init_profit_log_if_required();
+            f.profit_transfer_and_logs.as_mut().unwrap().add_new_log(log_event, note, link)
+        }
+    }))
+}
+
+#[update(guard = "check_controller")]
+pub async fn create_investor_profit_transfer_and_log(credit_id: u64) -> Result<CreditLogEvent, String> {
+    let (token_state, ledger) = STATE.with( |f| {
+        let token_state = f.borrow().tokens.clone();
+        let ledger = f.borrow().get_metadata().unwrap().token;
+        (token_state, ledger)
+    });
+    let mut profits = STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs.clone()
+    });
+    let res =  profits.as_mut().unwrap().start_sharing_profit(credit_id, token_state, ledger).await;
+
+    STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs= profits;
+    });
+
+    res
+}
+
+#[update]
+pub async fn debit_profit_entry_for_investor(amount_e8s: u64, account_id: String) -> Result<(), String> {
+    
+    let mut profits = STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs.clone()
+    });
+    let res =  profits.as_mut().unwrap().investors_credit_logs.debit_profit_entry(caller(), amount_e8s, account_id).await;
+
+    STATE.with_borrow_mut(  |f|  {
+        f.profit_transfer_and_logs= profits;
+    });
+
+    res
+}
+
+#[query]
+pub fn get_admin_credit_log_by_id(credit_id: u64) -> Option<CreditLog> {
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.as_ref().and_then(|f| f.get_credit_log(credit_id))
+    })
+}
+
+#[query]
+pub fn get_invetor_balance_e8s(investor: Option<Principal>) -> Option<u64> {
+    let investor = investor.unwrap_or(caller());
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.as_ref().and_then(|f| Some(f.investors_credit_logs.get_current_balance_e8s(investor)))
+    })
+}
+
+#[query]
+pub fn get_admin_credit_logs() -> Vec<CreditLog> {
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.clone().map(|f| f.get_credit_logs()).unwrap_or_default()
+    })
+}
+
+#[query]
+pub fn get_invetor_balance_logs(investor: Option<Principal>) -> Vec<ProfitLogState> {
+    let investor = investor.unwrap_or(caller());
+    STATE.with( |f| {
+        f.borrow().profit_transfer_and_logs.clone().map(|f| f.investors_credit_logs.get_logs(investor)).unwrap_or_default()
+    })
+}
+
+#[update(guard = "check_controller")]
+pub async fn trasfer_icp_to_investors_depricated(icp: f64) -> Result<String, String> {
+    STATE.with( |f: &std::cell::RefCell<State>|  f.borrow().clone() )
     .trasfer_icp_to_investors(icp).await 
+}
+
+
+
+pub async fn transfer_my_balance_from_escrow(icp: f64, account_id: String) -> Result<f64, String> {
+    let _ = AccountIdentifier::from_hex(&account_id)?;
+    let user = caller();
+    let state = STATE.with( |f|  f.borrow().clone() );
+    let icp_balance =  state.get_escrow_balance_for_principal(user).await?;
+    if icp_balance < icp {
+        Err("Insufficient funds to perform this request".into())
+    } else {
+        let amount_to_transfer = (icp * 1e8 ) as u64 ;
+        let meta = state.get_metadata()?;
+        let ledger = meta.token;
+        let from_principal = user;
+        let transfer_to_account_id = account_id;
+        let _ = state.escrow.transfer_amount_from_escrow_to_account_id( &from_principal, ledger,  amount_to_transfer, transfer_to_account_id  ).await.map_err(|f| format!("Failed for investor: {}\n{f}", user.to_text()))?;
+        let icp_balance =  state.get_escrow_balance_for_principal(user).await?;
+        Ok(icp_balance)
+    }
 }
 
 
@@ -156,4 +324,9 @@ pub async fn update_sale_status(status: SaleStatus) -> SaleStatus {
 pub async fn get_total_booked_tokens() -> u128 {
     STATE.with( |f|  f.borrow().clone() )
     .get_total_booked_tokens().await 
+}
+
+#[query]
+pub async fn get_escrow_account_id_for_principal( canister_id: Option<Principal>,principal: Principal,) -> String {
+    State::genral_escrow_account(canister_id, principal)
 }

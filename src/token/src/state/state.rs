@@ -3,6 +3,7 @@ use candid::{CandidType, Deserialize, };
 
 use super::metadata::Metadata;
 use super::escrow::EscrowStore;
+use super::profits::store::CreditLogsState;
 use super::transactions::TxnIndexStore;
 use super::TokenState;
 
@@ -12,6 +13,7 @@ pub struct State {
     pub escrow: EscrowStore,
     pub transactions: TxnIndexStore,
     pub tokens: TokenState, 
+    pub profit_transfer_and_logs: Option<CreditLogsState>
 }
 
 #[derive(CandidType, Deserialize, Clone)]

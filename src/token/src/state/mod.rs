@@ -11,5 +11,5 @@ pub mod index_canister;
 pub mod  token;
 pub use  token::*;
 pub mod icrc1;
-
+pub mod profits;
 pub mod supported_standards;
