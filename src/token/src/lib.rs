@@ -6,6 +6,7 @@ use crate::state::escrow::SaleStatus;
 use crate::state::icrc7::ICRC7MetadataQueryResult;
 use crate::state::metadata::*;
 use crate::state::supported_standards::SupportedStandard;
+use crate::state::escrow::EscrowTokenBalance;
 use candid::Nat;
 use candid::Principal;
 use ic_cdk::storage;
@@ -17,6 +18,7 @@ use state::State;
 use std::cell::RefCell;
 use icrc_ledger_types::icrc1::transfer::BlockIndex;
 use icrc_ledger_types::icrc1::transfer::TransferArg;
+use crate::state::profits::store::*;
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(Default::default());
@@ -50,6 +52,7 @@ fn pre_upgrade() {
             escrow: state.borrow().escrow.clone(),
             transactions: state.borrow().transactions.clone(),
             tokens: state.borrow().tokens.clone(),
+            profit_transfer_and_logs: state.borrow().profit_transfer_and_logs.clone(),
         },))
         .unwrap()
     });

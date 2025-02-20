@@ -8,6 +8,7 @@ pub mod admin;
 pub mod collection;
 pub use collection::*;
 
+use crate::admin::profit_transfer::*;
 
 use candid::Principal;
 
